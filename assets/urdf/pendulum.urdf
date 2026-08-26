@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot name="double_pendulum_rail">
+
+  <!-- 1. The Rail (Base) -->
+  <link name="rail">
+    <visual><geometry><box size="2.0 0.05 0.05"/></geometry></visual>
+  </link>
+
+  <!-- 2. The Cart -->
+  <link name="cart">
+    <visual><geometry><box size="0.2 0.2 0.1"/></geometry></visual>
+    <!-- Inertial and collision tags go here -->
+    <inertial><mass value="1.0"/><inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/></inertial>
+  </link>
+
+  <!-- Prismatic joint: Cart slides along the rail's X-axis -->
+  <joint name="rail_to_cart" type="prismatic">
+    <parent link="rail"/>
+    <child link="cart"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.0" upper="1.0" effort="100" velocity="10"/>
+  </joint>
+
+  <!-- 3. Pole 1 -->
+  <link name="pole1">
+    <visual>
+      <!-- Shift visual down so the joint acts as a top hinge -->
+      <origin xyz="0 0 -0.25"/>
+      <geometry><cylinder radius="0.02" length="0.5"/></geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 -0.25"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <!-- Continuous joint: Pole 1 rotates freely around the Y-axis -->
+  <joint name="cart_to_pole1" type="continuous">
+    <parent link="cart"/>
+    <child link="pole1"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- 4. Pole 2 -->
+  <link name="pole2">
+    <visual>
+      <origin xyz="0 0 -0.25"/>
+      <geometry><cylinder radius="0.02" length="0.5"/></geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 -0.25"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <!-- Continuous joint: Pole 2 attaches to the bottom of Pole 1 -->
+  <joint name="pole1_to_pole2" type="continuous">
+    <parent link="pole1"/>
+    <child link="pole2"/>
+    <origin xyz="0 0 -0.5"/> <!-- Placed at the bottom end of pole 1 -->
+    <axis xyz="0 1 0"/>
+  </joint>
+
+</robot>
