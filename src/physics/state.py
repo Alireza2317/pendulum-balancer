@@ -25,3 +25,15 @@ class EnvState:
 			],
 			dtype=np.float32,
 		)
+
+	def __repr__(self) -> str:
+		rp: str = "EnvState(\n"
+		rp += f"\tcart_x={self.cart_x:+5.3f}\n"
+		rp += f"\tcart_velocity={self.cart_x_velocity:+5.3f}\n"
+		rp += f"\tpole1_angle(deg)={np.rad2deg(self.pole1_angle):+5.3f}\n"
+		rp += f"\tpole2_angle(deg)={np.rad2deg(self.pole2_angle):+5.3f}\n"
+		rp += f"\tpole1_velocity={self.pole1_angular_velocity:+5.3f}\n"
+		rp += f"\tpole2_velocity={self.pole2_angular_velocity:+5.3f}\n"
+		rp += ")"
+
+		return rp
