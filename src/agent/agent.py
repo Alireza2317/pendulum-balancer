@@ -54,7 +54,7 @@ class DDPGAgent:
 	def train_step(
 		self,
 		states: tf.Tensor,
-		actions: tf.Tboolensor,
+		actions: tf.Tensor,
 		rewards: tf.Tensor,
 		next_states: tf.Tensor,
 		dones: tf.Tensor,
