@@ -54,10 +54,10 @@ class DDPGTrainer:
 		batch: Batch = self.buffer.sample(batch_size=self.BS)
 		self.agent.train_step(
 			states=tf.convert_to_tensor(batch.states, dtype=tf.float32),
-			actions=tf.convert_to_tensor(batch.actions, dtype=tf.float32),
-			rewards=tf.convert_to_tensor(batch.rewards, dtype=tf.float32),
+			actions=tf.expand_dims(tf.convert_to_tensor(batch.actions, dtype=tf.float32), axis=1),
+			rewards=tf.expand_dims(tf.convert_to_tensor(batch.rewards, dtype=tf.float32), axis=1),
 			next_states=tf.convert_to_tensor(batch.next_states, dtype=tf.float32),
-			dones=tf.convert_to_tensor(batch.dones, dtype=tf.float32),
+			dones=tf.expand_dims(tf.convert_to_tensor(batch.dones, dtype=tf.float32), axis=1),
 		)
 
 	def run_episode(self) -> None:
