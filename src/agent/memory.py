@@ -71,3 +71,6 @@ class UniformReplayBuffer(IBuffer):
 
 	def __len__(self) -> int:
 		return len(self._buffer)
+
+	def clear(self) -> None:
+		self._buffer.clear()
