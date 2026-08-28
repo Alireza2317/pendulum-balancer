@@ -34,7 +34,7 @@ class Critic(tfk.Model):
 
 	def call(self, state: tf.Tensor, action: tf.Tensor) -> tf.Tensor:
 		s = self.state_dense(state)
-		a = self.state_dense(action)
+		a = self.action_dense(action)
 
 		x = self.cat([s, a])
 		x = self.dense1(x)
