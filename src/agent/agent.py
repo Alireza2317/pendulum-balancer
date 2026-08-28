@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import tensorflow as tf
 import tensorflow.keras as tfk
 
-from physics.state import EnvState
 from src.agent.models import Actor, Critic
 
 
@@ -72,7 +71,10 @@ class DDPGAgent:
 			next_actions: tf.Tensor = self.target_actor(next_states)
 			# Future rewards
 			target_q_values: tf.Tensor = self.target_critic(next_states, next_actions)
-			y: tf.Tensor = rewards + self.cfg.gamma * target_q_values
+			# If the episode was ended on a certain transition
+			# There are no future rewards, so we need the (1-done) coefficient
+			future_rewards: tf.Tensor = target_q_values * (1 - dones)
+			y: tf.Tensor = rewards + self.cfg.gamma * future_rewards
 
 			# MSE loss
 			predicted_q_values: tf.Tensor = self.critic(states, actions)
