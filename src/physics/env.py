@@ -36,7 +36,7 @@ class DoublePendulumEnv:
 
 			# Add small amount of friction for realism
 			p.changeDynamics(
-				self.cart_id, i, jointDamping=0.05, physicsClientId=self.client_id
+				self.cart_id, i, jointDamping=0.01, physicsClientId=self.client_id
 			)
 
 	def get_state(self) -> EnvState:
@@ -44,14 +44,21 @@ class DoublePendulumEnv:
 		pole1_info = p.getJointState(self.cart_id, 1, physicsClientId=self.client_id)
 		pole2_info = p.getJointState(self.cart_id, 2, physicsClientId=self.client_id)
 
-		return EnvState(
+		# Since 0 degrees means vertical down, and we want vertical up (180 degrees)
+		# Normalize the angles so, upright means 0 degree
+		normalized_angle1: float = (pole1_info[0] % (2 * np.pi)) - np.pi
+		normalized_angle2: float = (pole2_info[0] % (2 * np.pi)) - np.pi
+
+		state: EnvState = EnvState(
 			cart_x=cart_info[0],
 			cart_x_velocity=cart_info[1],
-			pole1_angle=pole1_info[0],
+			pole1_angle=normalized_angle1,
 			pole1_angular_velocity=pole1_info[1],
-			pole2_angle=pole2_info[0],
+			pole2_angle=normalized_angle2,
 			pole2_angular_velocity=pole2_info[1],
 		)
+
+		return state
 
 	def reset(self) -> EnvState:
 		"""Resets the environment and returns the initial state."""
@@ -65,8 +72,7 @@ class DoublePendulumEnv:
 		)
 
 		for joint_index in (1, 2):
-			angle_noise = 0
-			# angle_noise = np.random.uniform(-0.05, 0.05)
+			angle_noise = np.random.uniform(-0.2, 0.2)
 			p.resetJointState(
 				self.cart_id,
 				jointIndex=joint_index,
