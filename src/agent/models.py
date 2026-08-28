@@ -7,7 +7,7 @@ class Actor(tfk.Model):
 		super().__init__()
 		self.dense1 = tfk.layers.Dense(256, activation="relu")
 		self.dense2 = tfk.layers.Dense(256, activation="relu")
-		self.out = tfk.layers.Dense(1, activation="Tanh")
+		self.out = tfk.layers.Dense(1, activation="tanh")
 
 	def call(self, state: tf.Tensor) -> tf.Tensor:
 		x = self.dense1(state)
