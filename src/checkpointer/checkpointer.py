@@ -16,12 +16,15 @@ class ModelCheckpointer:
 		self.log_dir = Path(log_dir)
 		self.checkpoint_dir = Path(checkpoint_dir)
 
+		self.episode_counter = tf.Variable(0, dtype=tf.uint64)
+
 		self.writer = tf.summary.create_file_writer(str(self.log_dir))
 		self.checkpoint = tf.train.Checkpoint(
 			actor=agent.actor,
 			critic=agent.critic,
 			target_actor=agent.target_actor,
 			target_critic=agent.target_critic,
+			episode=self.episode_counter
 		)
 		self.manager = tf.train.CheckpointManager(
 			self.checkpoint, directory=str(self.checkpoint_dir), max_to_keep=max_to_keep
