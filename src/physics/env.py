@@ -23,6 +23,7 @@ class DoublePendulumEnv:
 			physicsClientId=self.client_id,
 		)
 		self._disable_motors()
+		self.reset()
 
 	def _disable_motors(self) -> None:
 		"""Frees joints so physics (gravity/inertia) drives them."""
