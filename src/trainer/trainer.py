@@ -19,7 +19,7 @@ class DDPGTrainer:
 		self.BS: int = batch_size
 
 	def update_networks(self) -> None:
-		if len(self.buffer) < self.BS:
+		if len(self.buffer) < 5_000:
 			return
 
 		batch: Batch = self.buffer.sample(batch_size=self.BS)
