@@ -21,6 +21,14 @@ class DDPGAgent:
 		self.target_actor = Actor()
 		self.target_critic = Critic()
 
+		# Build initial weights with dummy inputs
+		dummy_state = tf.zeros((1, 6))
+		dummy_action = tf.zeros((1, 1))
+		self.actor(dummy_state)
+		self.target_actor(dummy_state)
+		self.critic(dummy_state, dummy_action)
+		self.target_critic(dummy_state, dummy_action)
+
 		self.target_actor.set_weights(self.actor.get_weights())
 		self.target_critic.set_weights(self.critic.get_weights())
 
