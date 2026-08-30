@@ -79,7 +79,7 @@ class DoublePendulumEnv:
 		)
 
 		for joint_index in (1, 2):
-			DELTA_DEG: int = 3
+			DELTA_DEG: int = 40
 			if joint_index == 1:
 				random_angle_deg = 180 + np.random.uniform(-DELTA_DEG, +DELTA_DEG)
 			else:
@@ -107,8 +107,22 @@ class DoublePendulumEnv:
 		# Penalize large forces
 		action_cost: float = 0.01 * ((action / MAX_FORCE) ** 2)
 
+		# Reward for being upright and stable
+		# Smaller angles (closer to 0) mean larger positive reward
+		# cos(angle) is 1 for 0 degrees (upright), -1 for 180 degrees (down)
+		# We want to maximize this when angle is 0
+		upright_reward = (np.cos(state.pole1_angle) + np.cos(state.pole2_angle)) * 0.2
+		# Add a small positive constant to encourage staying alive
+		alive_bonus = 0.01
 
-		return -(angle1_cost + angle2_cost + cart_x_cost + action_cost)
+		return (
+			upright_reward
+			+ alive_bonus
+			- angle1_cost
+			- angle2_cost
+			- cart_x_cost
+			- action_cost
+		)
 
 	def _is_done(self, state: EnvState) -> bool:
 		"""
@@ -118,7 +132,7 @@ class DoublePendulumEnv:
 		Returns True if the episode is finished.
 		"""
 		position_threshold: float = 0.95
-		angle_threshold_deg: float = 30.0
+		angle_threshold_deg: float = 15.0
 		angle_threshold: float = np.deg2rad(angle_threshold_deg)
 
 		return (
