@@ -7,5 +7,6 @@ requires-python = ">=3.10"
 dependencies = [
     "mypy>=2.3.1",
     "pybullet>=3.2.7",
+    "tensorboard>=2.21.0",
     "tensorflow>=2.21.0",
 ]
