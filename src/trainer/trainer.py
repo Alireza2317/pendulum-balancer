@@ -55,10 +55,7 @@ class DDPGTrainer:
 
 		while not done:
 			# Get the action from the actor
-			state_tensor: tf.Tensor = tf.convert_to_tensor(
-				state.nparray(), dtype=tf.float32
-			)
-			action: float = self.agent.get_action(state_tensor, noise_std=action_noise_std)
+			action: float = self.agent.get_action(state, noise_std=action_noise_std)
 
 			# Step the environment based on the action
 			next_state, reward, done, _ = self.env.step(action * MAX_FORCE)

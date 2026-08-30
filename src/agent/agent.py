@@ -4,6 +4,7 @@ import tensorflow as tf
 import tensorflow.keras as tfk
 
 from src.agent.models import Actor, Critic
+from src.physics.state import EnvState
 
 
 @dataclass(frozen=True)
@@ -45,10 +46,13 @@ class DDPGAgent:
 		for target, main in zip(self.target_critic.variables, self.critic.variables):
 			target.assign(target * (1 - self.cfg.tau) + main * self.cfg.tau)
 
-	def get_action(self, state: tf.Tensor, noise_std: float = 0.1) -> float:
+	def get_action(self, state: EnvState, noise_std: float = 0.1) -> float:
 		"""Runs inference and adds exploration noise during training."""
+		state_tensor: tf.Tensor = tf.convert_to_tensor(
+			state.nparray(), dtype=tf.float32
+		)
 		# Expand state's dimension from (n, ) to (1, n)
-		state_tensor: tf.Tensor = tf.expand_dims(state, axis=0)
+		state_tensor = tf.expand_dims(state_tensor, axis=0)
 
 		action: tf.Tensor = self.actor(state_tensor)[0, 0]
 
