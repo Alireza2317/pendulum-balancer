@@ -9,7 +9,7 @@ from src.agent.models import Actor, Critic
 @dataclass(frozen=True)
 class DDPGConfig:
 	gamma: float = 0.99
-	tau: float = 0.005
+	tau: float = 0.001
 
 
 class DDPGAgent:
@@ -24,8 +24,8 @@ class DDPGAgent:
 		self.target_actor.set_weights(self.actor.get_weights())
 		self.target_critic.set_weights(self.critic.get_weights())
 
-		self.actor_optimizer = tfk.optimizers.Adam(learning_rate=0.001)
-		self.critic_optimizer = tfk.optimizers.Adam(learning_rate=0.002)
+		self.actor_optimizer = tfk.optimizers.Adam(learning_rate=1e-4, clipnorm=1)
+		self.critic_optimizer = tfk.optimizers.Adam(learning_rate=1e-3, clipnorm=1)
 
 	@tf.function
 	def update_target_networks(self) -> None:
