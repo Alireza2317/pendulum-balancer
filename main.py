@@ -17,10 +17,10 @@ tf.random.set_seed(23)
 
 
 def train(continue_train: bool = True, save_log_process: bool = True):
-	env = DoublePendulumEnv(render=True)
-	buffer = UniformReplayBuffer(10_000)
+	env = DoublePendulumEnv(render=False)
+	buffer = UniformReplayBuffer(500_000)
 	agent = DDPGAgent()
-	trainer = DDPGTrainer(env, agent, buffer, batch_size=32)
+	trainer = DDPGTrainer(env, agent, buffer, batch_size=128)
 	checkpointer = ModelCheckpointer(agent)
 
 	if continue_train:
