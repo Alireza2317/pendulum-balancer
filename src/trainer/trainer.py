@@ -37,7 +37,7 @@ class DDPGTrainer:
 			),
 		)
 
-	def run_episode(self) -> float:
+	def run_episode(self, action_noise_std: float = 0.1) -> float:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -58,7 +58,7 @@ class DDPGTrainer:
 			state_tensor: tf.Tensor = tf.convert_to_tensor(
 				state.nparray(), dtype=tf.float32
 			)
-			action: float = self.agent.get_action(state_tensor, noise_std=0.1)
+			action: float = self.agent.get_action(state_tensor, noise_std=action_noise_std)
 
 			# Step the environment based on the action
 			next_state, reward, done, _ = self.env.step(action * MAX_FORCE)
