@@ -29,11 +29,17 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	else:
 		start_episode = 1
 
+	action_noise_std: float = 0.2
+	decay_factor: float = 0.995
+	min_noise_std: float = 0.01
+
 	MAX_EPISODES: int = 1_000
 	for episode in range(start_episode, start_episode + MAX_EPISODES):
 		print(f"Running episode {episode:4}...")
 
-		episode_reward = trainer.run_episode()
+		action_noise_std = max(min_noise_std, action_noise_std * decay_factor)
+
+		episode_reward = trainer.run_episode(action_noise_std)
 
 		if save_log_process and episode % 20 == 0:
 			checkpointer.episode_counter.assign(episode)
