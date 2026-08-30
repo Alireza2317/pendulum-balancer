@@ -6,6 +6,8 @@ import pybullet_data
 
 from src.physics.state import EnvState
 
+MAX_FORCE: float = 100
+
 
 class DoublePendulumEnv:
 	def __init__(self, render: bool = True) -> None:
@@ -102,7 +104,8 @@ class DoublePendulumEnv:
 		cart_x_cost: float = 0.1 * (state.cart_x**2)
 
 		# Penalize large forces
-		action_cost: float = 0.01 * (action**2)
+		action_cost: float = 0.01 * ((action / MAX_FORCE) ** 2)
+
 
 		return -(angle1_cost + angle2_cost + cart_x_cost + action_cost)
 
@@ -132,7 +135,7 @@ class DoublePendulumEnv:
 		# 2. p.stepSimulation(physicsClientId=self.client_id)
 		# 3. Read new joint states to form the observation array
 		# 4. Calculate reward and check if terminal
-		force: float = float(np.clip(action, -100, 100))
+		force: float = float(np.clip(action, -MAX_FORCE, MAX_FORCE))
 
 		p.setJointMotorControl2(
 			self.cart_id,

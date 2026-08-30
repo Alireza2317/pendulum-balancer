@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
 from src.agent.memory import Batch, IBuffer, Transition
-from src.physics.env import DoublePendulumEnv
+from src.physics.env import MAX_FORCE, DoublePendulumEnv
 
 
 class DDPGTrainer:
@@ -61,7 +61,7 @@ class DDPGTrainer:
 			action: float = self.agent.get_action(state_tensor, noise_std=0.1)
 
 			# Step the environment based on the action
-			next_state, reward, done, _ = self.env.step(action)
+			next_state, reward, done, _ = self.env.step(action * MAX_FORCE)
 
 			total_reward += reward
 
