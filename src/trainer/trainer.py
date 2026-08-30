@@ -73,6 +73,8 @@ class DDPGTrainer:
 				)
 			)
 
+			state = next_state
+
 			self.update_networks()
 
 		return total_reward
