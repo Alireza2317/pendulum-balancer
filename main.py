@@ -16,24 +16,26 @@ np.random.seed(23)
 tf.random.set_seed(23)
 
 
-def main():
+def train(continue_train: bool = True, save_log_process: bool = True):
 	env = DoublePendulumEnv(render=True)
 	buffer = UniformReplayBuffer(10_000)
 	agent = DDPGAgent()
 	trainer = DDPGTrainer(env, agent, buffer, batch_size=32)
 	checkpointer = ModelCheckpointer(agent)
 
-	checkpointer.load_latest()
+	if continue_train:
+		checkpointer.load_latest()
+		start_episode: int = int(checkpointer.episode_counter) + 1
+	else:
+		start_episode = 1
 
-	start_episode: int = int(checkpointer.episode_counter) + 1
 	MAX_EPISODES: int = 1_000
-
 	for episode in range(start_episode, start_episode + MAX_EPISODES):
 		print(f"Running episode {episode:4}...")
 
 		episode_reward = trainer.run_episode()
 
-		if episode % 20 == 0:
+		if save_log_process and episode % 20 == 0:
 			checkpointer.episode_counter.assign(episode)
 			checkpointer.log_scalar(
 				"Episode Total Reward", episode_reward, step=episode
@@ -42,4 +44,4 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+	train(continue_train=True, save_log_process=True)
