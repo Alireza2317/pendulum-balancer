@@ -74,7 +74,7 @@ class DDPGAgent:
 			# If the episode was ended on a certain transition
 			# There are no future rewards, so we need the (1-done) coefficient
 			future_rewards: tf.Tensor = target_q_values * (1 - dones)
-			y: tf.Tensor = rewards + self.cfg.gamma * future_rewards
+			y: tf.Tensor = tf.stop_gradient(rewards + self.cfg.gamma * future_rewards)
 
 			# MSE loss
 			predicted_q_values: tf.Tensor = self.critic(states, actions)
