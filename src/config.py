@@ -54,10 +54,14 @@ class Config:
 	# Exploration
 	action_noise_std: float = 0.1
 	noise_decay: float = 0.995
+	min_action_noise_std: float = 1e-2
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
 	train_every_n_steps: int = 4
+
+	# Logging and checkpointing
+	log_every_n_episodes: int = 20
 
 	def __post_init__(self) -> None:
 		if self.buffer_warmup_size < self.batch_size:

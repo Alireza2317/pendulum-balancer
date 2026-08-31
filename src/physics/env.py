@@ -4,21 +4,21 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 
+from src.config import Config
 from src.physics.state import EnvState
-
-MAX_FORCE: float = 10
 
 
 class DoublePendulumEnv:
-	def __init__(self, render: bool = True) -> None:
+	def __init__(self, config: Config, render: bool = True) -> None:
 		connection_mode = p.GUI if render else p.DIRECT
 		self.client_id: int = p.connect(connection_mode)
+		self.cfg = config
 
 		p.setAdditionalSearchPath(pybullet_data.getDataPath())
-		p.setGravity(0, 0, -9.81, physicsClientId=self.client_id)
+		p.setGravity(0, 0, self.cfg.gravity, physicsClientId=self.client_id)
 
 		self.cart_id = p.loadURDF(
-			"assets/urdf/pendulum.urdf",
+			self.cfg.pendulum_urdf_path,
 			useFixedBase=True,
 			physicsClientId=self.client_id,
 		)
@@ -39,7 +39,10 @@ class DoublePendulumEnv:
 
 			# Add small amount of friction for realism
 			p.changeDynamics(
-				self.cart_id, i, jointDamping=0.005, physicsClientId=self.client_id
+				self.cart_id,
+				i,
+				jointDamping=self.cfg.joint_damping,
+				physicsClientId=self.client_id,
 			)
 
 	def get_state(self) -> EnvState:
@@ -60,9 +63,13 @@ class DoublePendulumEnv:
 			cart_x=cart_info[0],
 			cart_x_velocity=cart_info[1],
 			pole1_angle=normalized_angle1,
-			pole1_angular_velocity=float(np.clip(pole1_info[1], -10, 10)),
+			pole1_angular_velocity=float(
+				np.clip(pole1_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
+			),
 			pole2_angle=normalized_angle2,
-			pole2_angular_velocity=float(np.clip(pole2_info[1], -10, 10)),
+			pole2_angular_velocity=float(
+				np.clip(pole2_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
+			),
 		)
 
 		return state
@@ -79,7 +86,7 @@ class DoublePendulumEnv:
 		)
 
 		for joint_index in (1, 2):
-			DELTA_DEG: int = 40
+			DELTA_DEG: float = self.cfg.reset_angle_range_deg
 			if joint_index == 1:
 				random_angle_deg = 180 + np.random.uniform(-DELTA_DEG, +DELTA_DEG)
 			else:
@@ -105,39 +112,35 @@ class DoublePendulumEnv:
 		cart_x_cost: float = 0.1 * (state.cart_x**2)
 
 		# Penalize large forces
-		action_cost: float = 0.01 * ((action / MAX_FORCE) ** 2)
+		action_cost: float = 0.01 * ((action / self.cfg.max_force) ** 2)
 
 		# Reward for being upright and stable
 		# Smaller angles (closer to 0) mean larger positive reward
 		# cos(angle) is 1 for 0 degrees (upright), -1 for 180 degrees (down)
 		# We want to maximize this when angle is 0
 		upright_reward = (np.cos(state.pole1_angle) + np.cos(state.pole2_angle)) * 0.2
-		# Add a small positive constant to encourage staying alive
-		alive_bonus = 0.05
 
 		return (
 			upright_reward
-			+ alive_bonus
+			+ self.cfg.alive_bonus
 			- angle1_cost
 			- angle2_cost
 			- cart_x_cost
 			- action_cost
-			- (1.0 if self._is_done(state) else 0)
+			- (self.cfg.terminal_penalty if self._is_done(state) else 0)
 		)
 
 	def _is_done(self, state: EnvState) -> bool:
 		"""
 		The episode is finished if either of these conditions are met:
-			1. If the cart is so close to the edges (<-0.95 or >0.95)
-			2. If the poles angles exceed a certain threshold (e.g. 30 degrees)
+			1. If the cart is so close to the edges (e.g. <-0.95 or >0.95)
+			2. If the poles angles exceed a certain threshold (e.g. 15 degrees)
 		Returns True if the episode is finished.
 		"""
-		position_threshold: float = 0.95
-		angle_threshold_deg: float = 15.0
-		angle_threshold: float = np.deg2rad(angle_threshold_deg)
+		angle_threshold: float = np.deg2rad(self.cfg.angle_threshold_deg)
 
 		return (
-			abs(state.cart_x) > position_threshold
+			abs(state.cart_x) > self.cfg.cart_x_threshold
 			or abs(state.pole1_angle) > angle_threshold
 			or abs(state.pole2_angle) > angle_threshold
 		)
@@ -147,11 +150,7 @@ class DoublePendulumEnv:
 		Applies an action(the force), steps physics,
 		and returns (next state, reward, done, info).
 		"""
-		# 1. Apply force (action) to the cart's prismatic joint
-		# 2. p.stepSimulation(physicsClientId=self.client_id)
-		# 3. Read new joint states to form the observation array
-		# 4. Calculate reward and check if terminal
-		force: float = float(np.clip(action, -MAX_FORCE, MAX_FORCE))
+		force: float = float(np.clip(action, -self.cfg.max_force, self.cfg.max_force))
 
 		p.setJointMotorControl2(
 			self.cart_id,

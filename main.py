@@ -7,6 +7,7 @@ import tensorflow as tf
 from src.agent.agent import DDPGAgent
 from src.agent.memory import UniformReplayBuffer
 from src.checkpointer.checkpointer import ModelCheckpointer
+from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.trainer.trainer import DDPGTrainer
 
@@ -17,10 +18,12 @@ tf.random.set_seed(23)
 
 
 def train(continue_train: bool = True, save_log_process: bool = True):
-	env = DoublePendulumEnv(render=False)
-	buffer = UniformReplayBuffer(500_000)
+	cfg: Config = Config()
+
+	env = DoublePendulumEnv(cfg, render=False)
+	buffer = UniformReplayBuffer(cfg.buffer_maxsize)
 	agent = DDPGAgent()
-	trainer = DDPGTrainer(env, agent, buffer, batch_size=128)
+	trainer = DDPGTrainer(env, agent, buffer, batch_size=cfg.batch_size)
 	checkpointer = ModelCheckpointer(agent)
 
 	if continue_train:
@@ -29,19 +32,17 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	else:
 		start_episode = 1
 
-	action_noise_std: float = 0.2
-	decay_factor: float = 0.995
-	min_noise_std: float = 0.01
-
-	MAX_EPISODES: int = 1_000
-	for episode in range(start_episode, start_episode + MAX_EPISODES):
+	action_noise_std: float = cfg.action_noise_std
+	for episode in range(start_episode, start_episode + cfg.max_episodes):
 		print(f"Running episode {episode:4}...")
 
-		action_noise_std = max(min_noise_std, action_noise_std * decay_factor)
+		action_noise_std = max(
+			cfg.min_action_noise_std, action_noise_std * cfg.noise_decay
+		)
 
-		episode_reward = trainer.run_episode(action_noise_std)
+		episode_reward, *_ = trainer.run_episode(action_noise_std)
 
-		if save_log_process and episode % 20 == 0:
+		if save_log_process and episode % cfg.log_every_n_episodes == 0:
 			checkpointer.episode_counter.assign(episode)
 			checkpointer.log_scalar(
 				"Episode Total Reward", episode_reward, step=episode
