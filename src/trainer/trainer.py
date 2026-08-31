@@ -1,3 +1,5 @@
+from itertools import count
+
 import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
@@ -11,19 +13,19 @@ class DDPGTrainer:
 		environment: DoublePendulumEnv,
 		agent: DDPGAgent,
 		replay_buffer: IBuffer,
-		batch_size: int = 64,
+		batch_size: int,
 	) -> None:
 		self.env: DoublePendulumEnv = environment
 		self.agent: DDPGAgent = agent
 		self.buffer: IBuffer = replay_buffer
-		self.BS: int = batch_size
+		self.batch_size: int = batch_size
 
-	def update_networks(self) -> None:
+	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
 		if len(self.buffer) < 5_000:
 			return
 
-		batch: Batch = self.buffer.sample(batch_size=self.BS)
-		self.agent.train_step(
+		batch: Batch = self.buffer.sample(batch_size=self.batch_size)
+		return self.agent.train_step(
 			states=tf.convert_to_tensor(batch.states, dtype=tf.float32),
 			actions=tf.expand_dims(
 				tf.convert_to_tensor(batch.actions, dtype=tf.float32), axis=1
@@ -37,7 +39,7 @@ class DDPGTrainer:
 			),
 		)
 
-	def run_episode(self, action_noise_std: float = 0.1) -> float:
+	def run_episode(self, action_noise_std: float) -> tuple[float, float, float, float]:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -53,7 +55,13 @@ class DDPGTrainer:
 		done: bool = False
 		total_reward: float = 0
 
-		while not done:
+		actor_losses: list[float] = []
+		critic_losses: list[float] = []
+		episode_avg_q_vals: list[float] = []
+
+		for step in count(start=1):
+			if done:
+				break
 			# Get the action from the actor
 			action: float = self.agent.get_action(state, noise_std=action_noise_std)
 
@@ -63,18 +71,29 @@ class DDPGTrainer:
 			total_reward += reward
 
 			# Save the transition into the buffer
-			self.buffer.add(
-				Transition(
-					state=state,
-					action=action,
-					reward=reward,
-					next_state=next_state,
-					done=done,
-				)
-			)
+			self.buffer.add(Transition(state, action, reward, next_state, done))
 
 			state = next_state
 
-			self.update_networks()
+			if step % 4 == 0:
+				result: tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None = (
+					self.update_networks()
+				)
+				if result is not None:
+					actor_loss, critic_loss, q_vals = result
+					actor_losses.append(float(actor_loss))
+					critic_losses.append(float(critic_loss))
+					episode_avg_q_vals.append(float(tf.reduce_mean(q_vals)))
 
-		return total_reward
+		avg_actor_loss: float = (
+			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
+		)
+		avg_critic_loss: float = (
+			sum(critic_losses) / len(critic_losses) if critic_losses else 0.0
+		)
+		avg_q: float = (
+			sum(episode_avg_q_vals) / len(episode_avg_q_vals)
+			if episode_avg_q_vals
+			else 0.0
+		)
+		return total_reward, avg_actor_loss, avg_critic_loss, avg_q

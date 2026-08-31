@@ -70,10 +70,10 @@ class DDPGAgent:
 		rewards: tf.Tensor,
 		next_states: tf.Tensor,
 		dones: tf.Tensor,
-	) -> tuple[tf.Tensor, tf.Tensor]:
+	) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
 		"""
 		Calculates loss and applies gradients for one sampled batch.
-		Returns actor_loss and critic_loss
+		Returns actor's loss and critic's loss and predicted Q-values
 		"""
 		# Update Critic
 		with tf.GradientTape() as tape:
@@ -113,4 +113,4 @@ class DDPGAgent:
 		# Update the target networks, very slightly and softly
 		self.update_target_networks()
 
-		return actor_loss, critic_loss
+		return actor_loss, critic_loss, predicted_q_values
