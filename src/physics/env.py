@@ -113,7 +113,7 @@ class DoublePendulumEnv:
 		# We want to maximize this when angle is 0
 		upright_reward = (np.cos(state.pole1_angle) + np.cos(state.pole2_angle)) * 0.2
 		# Add a small positive constant to encourage staying alive
-		alive_bonus = 0.01
+		alive_bonus = 0.05
 
 		return (
 			upright_reward
@@ -122,6 +122,7 @@ class DoublePendulumEnv:
 			- angle2_cost
 			- cart_x_cost
 			- action_cost
+			- (1.0 if self._is_done(state) else 0)
 		)
 
 	def _is_done(self, state: EnvState) -> bool:
