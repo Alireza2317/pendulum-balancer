@@ -40,7 +40,9 @@ class DDPGTrainer:
 			),
 		)
 
-	def run_episode(self, action_noise_std: float) -> tuple[float, float, float, float]:
+	def run_episode(
+		self, action_noise_std: float
+	) -> tuple[float, float, float, float, float]:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -49,7 +51,12 @@ class DDPGTrainer:
 			- Saves the transition in the replay buffer
 			- Updates all 4 networks parameters.
 
-		Returns the total reward earned in the episode.
+		Returns  a tuple containing:
+			- The total reward earned in the episode.
+			- Number of steps survived in the episode.
+			- Average actor loss.
+			- Average critic loss.
+			- Average Q-Values
 		"""
 
 		state = self.env.reset()
@@ -59,8 +66,9 @@ class DDPGTrainer:
 		actor_losses: list[float] = []
 		critic_losses: list[float] = []
 		episode_avg_q_vals: list[float] = []
+		step: int = 0
 
-		for step in count(start=1):
+		for step in count():
 			if done:
 				break
 			# Get the action from the actor
@@ -85,6 +93,7 @@ class DDPGTrainer:
 					critic_losses.append(float(critic_loss))
 					episode_avg_q_vals.append(float(tf.reduce_mean(q_vals)))
 
+
 		avg_actor_loss: float = (
 			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
 		)
@@ -96,4 +105,4 @@ class DDPGTrainer:
 			if episode_avg_q_vals
 			else 0.0
 		)
-		return total_reward, avg_actor_loss, avg_critic_loss, avg_q
+		return total_reward, step, avg_actor_loss, avg_critic_loss, avg_q

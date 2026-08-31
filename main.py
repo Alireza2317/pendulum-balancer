@@ -40,13 +40,26 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 			cfg.min_action_noise_std, action_noise_std * cfg.noise_decay
 		)
 
-		episode_reward, *_ = trainer.run_episode(action_noise_std)
+		episode_reward, steps_survived, actor_loss, critic_loss, avg_q = (
+			trainer.run_episode(action_noise_std)
+		)
 
 		if save_log_process and episode % cfg.log_every_n_episodes == 0:
 			checkpointer.episode_counter.assign(episode)
 			checkpointer.log_scalar(
 				"Episode Total Reward", episode_reward, step=episode
 			)
+			checkpointer.log_scalar(
+				"Steps Survived in Each Episode", steps_survived, step=episode
+			)
+			checkpointer.log_scalar(
+				"Episode Average Actor Loss", actor_loss, step=episode
+			)
+			checkpointer.log_scalar(
+				"Episode Average Critic Loss", critic_loss, step=episode
+			)
+			checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
+
 			checkpointer.save(episode)
 
 

@@ -9,8 +9,8 @@ from pathlib import Path
 class Config:
 	# Buffer and training
 	buffer_maxsize: int = 300_000
-	buffer_warmup_size: int = 5_000
-	max_episodes: int = 1_000
+	buffer_warmup_size: int = 3_000
+	max_episodes: int = 3_000
 	batch_size: int = 128
 
 	# Agent hyperparameters
