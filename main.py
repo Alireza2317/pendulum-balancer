@@ -22,7 +22,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 
 	env = DoublePendulumEnv(cfg, render=False)
 	buffer = UniformReplayBuffer(cfg.buffer_maxsize)
-	agent = DDPGAgent()
+	agent = DDPGAgent(cfg)
 	trainer = DDPGTrainer(cfg, env, agent, buffer)
 	checkpointer = ModelCheckpointer(agent)
 

@@ -4,17 +4,12 @@ import tensorflow as tf
 import tensorflow.keras as tfk
 
 from src.agent.models import Actor, Critic
+from src.config import Config
 from src.physics.state import EnvState
 
 
-@dataclass(frozen=True)
-class DDPGConfig:
-	gamma: float = 0.99
-	tau: float = 0.001
-
-
 class DDPGAgent:
-	def __init__(self, cfg: DDPGConfig = DDPGConfig()) -> None:
+	def __init__(self, cfg: Config) -> None:
 		self.cfg = cfg
 
 		self.actor = Actor()
@@ -33,8 +28,12 @@ class DDPGAgent:
 		self.target_actor.set_weights(self.actor.get_weights())
 		self.target_critic.set_weights(self.critic.get_weights())
 
-		self.actor_optimizer = tfk.optimizers.Adam(learning_rate=1e-4, clipnorm=1)
-		self.critic_optimizer = tfk.optimizers.Adam(learning_rate=1e-3, clipnorm=1)
+		self.actor_optimizer = tfk.optimizers.Adam(
+			learning_rate=self.cfg.actor_lr, clipnorm=1
+		)
+		self.critic_optimizer = tfk.optimizers.Adam(
+			learning_rate=self.cfg.critic_lr, clipnorm=1
+		)
 
 	@tf.function
 	def update_target_networks(self) -> None:
@@ -46,7 +45,7 @@ class DDPGAgent:
 		for target, main in zip(self.target_critic.variables, self.critic.variables):
 			target.assign(target * (1 - self.cfg.tau) + main * self.cfg.tau)
 
-	def get_action(self, state: EnvState, noise_std: float = 0.1) -> float:
+	def get_action(self, state: EnvState, noise_std: float) -> float:
 		"""Runs inference and adds exploration noise during training."""
 		state_tensor: tf.Tensor = tf.convert_to_tensor(
 			state.nparray(), dtype=tf.float32
