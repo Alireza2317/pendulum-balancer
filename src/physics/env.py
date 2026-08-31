@@ -6,7 +6,7 @@ import pybullet_data
 
 from src.physics.state import EnvState
 
-MAX_FORCE: float = 100
+MAX_FORCE: float = 10
 
 
 class DoublePendulumEnv:
@@ -60,9 +60,9 @@ class DoublePendulumEnv:
 			cart_x=cart_info[0],
 			cart_x_velocity=cart_info[1],
 			pole1_angle=normalized_angle1,
-			pole1_angular_velocity=pole1_info[1],
+			pole1_angular_velocity=float(np.clip(pole1_info[1], -10, 10)),
 			pole2_angle=normalized_angle2,
-			pole2_angular_velocity=pole2_info[1],
+			pole2_angular_velocity=float(np.clip(pole2_info[1], -10, 10)),
 		)
 
 		return state
