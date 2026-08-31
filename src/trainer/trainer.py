@@ -4,27 +4,28 @@ import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
 from src.agent.memory import Batch, IBuffer, Transition
-from src.physics.env import MAX_FORCE, DoublePendulumEnv
+from src.config import Config
+from src.physics.env import DoublePendulumEnv
 
 
 class DDPGTrainer:
 	def __init__(
 		self,
+		config: Config,
 		environment: DoublePendulumEnv,
 		agent: DDPGAgent,
 		replay_buffer: IBuffer,
-		batch_size: int,
 	) -> None:
+		self.cfg = config
 		self.env: DoublePendulumEnv = environment
 		self.agent: DDPGAgent = agent
 		self.buffer: IBuffer = replay_buffer
-		self.batch_size: int = batch_size
 
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
-		if len(self.buffer) < 5_000:
+		if len(self.buffer) < self.cfg.buffer_warmup_size:
 			return
 
-		batch: Batch = self.buffer.sample(batch_size=self.batch_size)
+		batch: Batch = self.buffer.sample(batch_size=self.cfg.batch_size)
 		return self.agent.train_step(
 			states=tf.convert_to_tensor(batch.states, dtype=tf.float32),
 			actions=tf.expand_dims(
@@ -66,7 +67,7 @@ class DDPGTrainer:
 			action: float = self.agent.get_action(state, noise_std=action_noise_std)
 
 			# Step the environment based on the action
-			next_state, reward, done, _ = self.env.step(action * MAX_FORCE)
+			next_state, reward, done, _ = self.env.step(action * self.cfg.max_force)
 
 			total_reward += reward
 
@@ -74,8 +75,7 @@ class DDPGTrainer:
 			self.buffer.add(Transition(state, action, reward, next_state, done))
 
 			state = next_state
-
-			if step % 4 == 0:
+			if step % self.cfg.train_every_n_steps == 0:
 				result: tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None = (
 					self.update_networks()
 				)
