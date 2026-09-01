@@ -10,7 +10,7 @@ class Config:
 	# Buffer and training
 	buffer_maxsize: int = 300_000
 	buffer_warmup_size: int = 3_000
-	max_episodes: int = 3_000
+	max_episodes: int = 8_000
 	batch_size: int = 128
 
 	# Agent hyperparameters
@@ -52,7 +52,7 @@ class Config:
 	angle_threshold_deg: float = 15.0
 
 	# Exploration
-	action_noise_std: float = 0.1
+	action_noise_std: float = 0.5
 	noise_decay: float = 0.995
 	min_action_noise_std: float = 1e-2
 

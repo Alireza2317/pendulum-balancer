@@ -1,5 +1,6 @@
 import os
 import random
+import time
 
 import numpy as np
 import tensorflow as tf
@@ -12,9 +13,9 @@ from src.physics.env import DoublePendulumEnv
 from src.trainer.trainer import DDPGTrainer
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-random.seed(23)
-np.random.seed(23)
-tf.random.set_seed(23)
+# random.seed(23)
+# np.random.seed(23)
+# tf.random.set_seed(23)
 
 
 def train(continue_train: bool = True, save_log_process: bool = True):
@@ -63,5 +64,32 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 			checkpointer.save(episode)
 
 
+def run():
+	cfg: Config = Config()
+
+	env = DoublePendulumEnv(cfg, render=True)
+	agent = DDPGAgent(cfg)
+
+	checkpointer = ModelCheckpointer(agent)
+	checkpointer.load_latest()
+
+	try:
+		state = env.reset()
+		while True:
+			state = env.get_state()
+
+			# Get the action from the actor
+			action: float = agent.get_action(state, noise_std=0)
+
+			# Step the environment based on the action
+			env.step(action * cfg.max_force)
+
+			time.sleep(1 / 240)
+
+	except KeyboardInterrupt:
+		env.close()
+
+
 if __name__ == "__main__":
-	train(continue_train=True, save_log_process=True)
+	# train(continue_train=True, save_log_process=True)
+	run()
