@@ -25,7 +25,7 @@ class Config:
 	tau: float = 0.001
 
 	# Physics and environment
-	max_force: float = 15.0
+	max_force: float = 30.0
 
 	## Gravity
 	gravity: float = -9.81
