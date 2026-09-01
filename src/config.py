@@ -27,6 +27,10 @@ class Config:
 	# Physics and environment
 	max_force: float = 30.0
 
+	## State and action
+	state_dim: int = 6
+	action_dim: int = 1
+
 	## Gravity
 	gravity: float = -9.81
 
@@ -56,9 +60,14 @@ class Config:
 	noise_decay: float = 0.995
 	min_action_noise_std: float = 1e-2
 
+	## OU noise parameters
+	ounoise_mu: float = 0.0
+	ounoise_theta: float = 0.15
+	ounoise_sigma: float = 0.2
+
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
-	train_every_n_steps: int = 4
+	train_every_n_steps: int = 2
 
 	# Logging and checkpointing
 	log_every_n_episodes: int = 20
