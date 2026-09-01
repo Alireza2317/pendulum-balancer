@@ -43,7 +43,7 @@ class DDPGAgent:
 		for target, main in zip(self.target_critic.variables, self.critic.variables):
 			target.assign(target * (1 - self.cfg.tau) + main * self.cfg.tau)
 
-	def get_action(self, state: EnvState, noise_std: float) -> float:
+	def get_action(self, state: EnvState, noise: float) -> float:
 		"""Runs inference and adds exploration noise during training."""
 		state_tensor: tf.Tensor = tf.convert_to_tensor(
 			state.nparray(), dtype=tf.float32
@@ -51,11 +51,7 @@ class DDPGAgent:
 		# Expand state's dimension from (n, ) to (1, n)
 		state_tensor = tf.expand_dims(state_tensor, axis=0)
 
-		action: tf.Tensor = self.actor(state_tensor)[0, 0]
-
-		if noise_std > 0:
-			noise = tf.random.normal(shape=(), mean=0, stddev=noise_std)
-			action += noise
+		action: tf.Tensor = self.actor(state_tensor)[0, 0] + noise
 
 		return float(tf.clip_by_value(action, -1, 1))
 
