@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
 from src.agent.memory import Batch, IBuffer, Transition
+from src.agent.noise import OUNoise
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
 
@@ -19,6 +20,7 @@ class DDPGTrainer:
 		self.cfg = config
 		self.env: DoublePendulumEnv = environment
 		self.agent: DDPGAgent = agent
+		self.noise: OUNoise = OUNoise(self.cfg)
 		self.buffer: IBuffer = replay_buffer
 
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
@@ -40,9 +42,7 @@ class DDPGTrainer:
 			),
 		)
 
-	def run_episode(
-		self, action_noise_std: float
-	) -> tuple[float, float, float, float, float]:
+	def run_episode(self) -> tuple[float, float, float, float, float]:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -60,19 +60,20 @@ class DDPGTrainer:
 		"""
 
 		state = self.env.reset()
+		self.noise.reset()
 		done: bool = False
 		total_reward: float = 0
 
 		actor_losses: list[float] = []
 		critic_losses: list[float] = []
 		episode_avg_q_vals: list[float] = []
-		step: int = 0
 
+		step: int = 0
 		for step in count():
 			if done:
 				break
 			# Get the action from the actor
-			action: float = self.agent.get_action(state, noise_std=action_noise_std)
+			action: float = self.agent.get_action(state, noise=self.noise.sample())
 
 			# Step the environment based on the action
 			next_state, reward, done, _ = self.env.step(action * self.cfg.max_force)
@@ -92,7 +93,6 @@ class DDPGTrainer:
 					actor_losses.append(float(actor_loss))
 					critic_losses.append(float(critic_loss))
 					episode_avg_q_vals.append(float(tf.reduce_mean(q_vals)))
-
 
 		avg_actor_loss: float = (
 			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0

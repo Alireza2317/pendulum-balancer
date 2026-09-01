@@ -33,16 +33,11 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	else:
 		start_episode = 1
 
-	action_noise_std: float = cfg.action_noise_std
 	for episode in range(start_episode, start_episode + cfg.max_episodes):
 		print(f"Running episode {episode:4}...")
 
-		action_noise_std = max(
-			cfg.min_action_noise_std, action_noise_std * cfg.noise_decay
-		)
-
 		episode_reward, steps_survived, actor_loss, critic_loss, avg_q = (
-			trainer.run_episode(action_noise_std)
+			trainer.run_episode()
 		)
 
 		if save_log_process and episode % cfg.log_every_n_episodes == 0:
@@ -79,7 +74,7 @@ def run():
 			state = env.get_state()
 
 			# Get the action from the actor
-			action: float = agent.get_action(state, noise_std=0)
+			action: float = agent.get_action(state, noise=0)
 
 			# Step the environment based on the action
 			env.step(action * cfg.max_force)
@@ -91,5 +86,5 @@ def run():
 
 
 if __name__ == "__main__":
-	# train(continue_train=True, save_log_process=True)
-	run()
+	train(continue_train=True, save_log_process=True)
+	# run()

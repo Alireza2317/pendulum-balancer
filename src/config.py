@@ -56,10 +56,6 @@ class Config:
 	angle_threshold_deg: float = 15.0
 
 	# Exploration
-	action_noise_std: float = 0.5
-	noise_decay: float = 0.995
-	min_action_noise_std: float = 1e-2
-
 	## OU noise parameters
 	ounoise_mu: float = 0.0
 	ounoise_theta: float = 0.15
