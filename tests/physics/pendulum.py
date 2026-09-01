@@ -2,10 +2,12 @@ import time
 
 import pybullet as p
 
+from src.config import Config
 from src.physics.env import DoublePendulumEnv
 
 if __name__ == "__main__":
-	env = DoublePendulumEnv()
+	cfg=Config()
+	env = DoublePendulumEnv(cfg)
 	force_slider_id = p.addUserDebugParameter(
 		"Force", -10, 10, 0, physicsClientId=env.client_id
 	)
