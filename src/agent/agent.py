@@ -16,8 +16,8 @@ class DDPGAgent:
 		self.target_critic = Critic()
 
 		# Build initial weights with dummy inputs
-		dummy_state = tf.zeros((1, 6))
-		dummy_action = tf.zeros((1, 1))
+		dummy_state = tf.zeros((1, self.cfg.state_dim))
+		dummy_action = tf.zeros((1, self.cfg.action_dim))
 		self.actor(dummy_state)
 		self.target_actor(dummy_state)
 		self.critic(dummy_state, dummy_action)
