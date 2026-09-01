@@ -126,7 +126,7 @@ class DoublePendulumEnv:
 			- angle1_cost
 			- angle2_cost
 			- cart_x_cost
-			- action_cost
+			# - action_cost
 			- (self.cfg.terminal_penalty if self._is_done(state) else 0)
 		)
 
