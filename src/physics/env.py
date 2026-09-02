@@ -23,7 +23,24 @@ class DoublePendulumEnv:
 			physicsClientId=self.client_id,
 		)
 		self._disable_motors()
+
+		# Curriculum-controlled difficulty, defaults to the easiest setting.
+		self._reset_angle_range_deg: float = self.cfg.curriculum_reset_start_deg
+		self._angle_threshold_deg: float = (
+			self.cfg.curriculum_reset_start_deg + self.cfg.curriculum_margin_start_deg
+		)
+
 		self.reset()
+
+	def set_difficulty(
+		self, reset_angle_range_deg: float, angle_threshold_deg: float
+	) -> None:
+		"""
+		Sets how far poles are randomized at reset, and the angle (deg) that
+		fails the episode.
+		"""
+		self._reset_angle_range_deg = reset_angle_range_deg
+		self._angle_threshold_deg = angle_threshold_deg
 
 	def _disable_motors(self) -> None:
 		"""Frees joints so physics (gravity/inertia) drives them."""
@@ -86,7 +103,7 @@ class DoublePendulumEnv:
 		)
 
 		for joint_index in (1, 2):
-			DELTA_DEG: float = self.cfg.reset_angle_range_deg
+			DELTA_DEG: float = self._reset_angle_range_deg
 			if joint_index == 1:
 				random_angle_deg = 180 + np.random.uniform(-DELTA_DEG, +DELTA_DEG)
 			else:
@@ -104,9 +121,10 @@ class DoublePendulumEnv:
 
 	def _calculate_reward(self, state: EnvState, action: float) -> float:
 		"""Calculates penalty based on angles, position, and action/force."""
+		# Bounded upright-ness cost per pole: 0 when upright, 2 when hanging.
 		# Penalize large angles and deviations from the upright position
-		angle1_cost: float = state.pole1_angle**2
-		angle2_cost: float = state.pole2_angle**2
+		angle1_cost: float = 1 - np.cos(state.pole1_angle)
+		angle2_cost: float = 1 - np.cos(state.pole2_angle)
 
 		# Penalize cart getting farther from the origin(x=0)
 		cart_x_cost: float = 0.1 * (state.cart_x**2)
@@ -114,33 +132,33 @@ class DoublePendulumEnv:
 		# Penalize large forces
 		action_cost: float = 0.01 * ((action / self.cfg.max_force) ** 2)
 
-		# Reward for being upright and stable
-		# Smaller angles (closer to 0) mean larger positive reward
-		# cos(angle) is 1 for 0 degrees (upright), -1 for 180 degrees (down)
-		# We want to maximize this when angle is 0
-		upright_reward = (np.cos(state.pole1_angle) + np.cos(state.pole2_angle)) * 0.2
-
 		return (
-			upright_reward
-			+ self.cfg.alive_bonus
+			self.cfg.alive_bonus
 			- angle1_cost
 			- angle2_cost
 			- cart_x_cost
 			# - action_cost
-			- (self.cfg.terminal_penalty if self._is_done(state) else 0)
+			- (self.cfg.terminal_penalty if self._is_hard_fail(state) else 0)
 		)
+
+	def _is_hard_fail(self, state: EnvState) -> bool:
+		"""True only for the unrecoverable failure: cart off the rail."""
+		return abs(state.cart_x) > self.cfg.cart_x_threshold
 
 	def _is_done(self, state: EnvState) -> bool:
 		"""
 		The episode is finished if either of these conditions are met:
-			1. If the cart is so close to the edges (e.g. <-0.95 or >0.95)
-			2. If the poles angles exceed a certain threshold (e.g. 15 degrees)
-		Returns True if the episode is finished.
+			1. The cart is off the rail (real, unrecoverable failure).
+			2. A pole angle exceeds the curriculum's current threshold.
+		At low curriculum levels (2) is tight, so the agent learns fine balance without
+		wasting steps recovering from a fall. At high curriculum levels the threshold is
+		relaxed past 180 deg so it can never trigger, and only (1) or the maximum
+		episode's step cap end things; forcing the agent to recover from falls.
 		"""
-		angle_threshold: float = np.deg2rad(self.cfg.angle_threshold_deg)
+		angle_threshold: float = np.deg2rad(self._angle_threshold_deg)
 
 		return (
-			abs(state.cart_x) > self.cfg.cart_x_threshold
+			self._is_hard_fail(state)
 			or abs(state.pole1_angle) > angle_threshold
 			or abs(state.pole2_angle) > angle_threshold
 		)
