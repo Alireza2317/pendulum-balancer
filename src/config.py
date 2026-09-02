@@ -28,7 +28,8 @@ class Config:
 	max_force: float = 30.0
 
 	## State and action
-	state_dim: int = 6
+	## 8 = cart_x, cart_x_vel, sin(a1), cos(a1), a1_vel, sin(a2), cos(a2), a2_vel
+	state_dim: int = 8
 	action_dim: int = 1
 
 	## Gravity

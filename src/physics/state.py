@@ -14,13 +14,18 @@ class EnvState:
 	pole2_angular_velocity: float
 
 	def nparray(self) -> npt.NDArray[np.float32]:
+		# Angles are fed as (sin, cos) rather than raw radians.
+		# Raw angle has a discontinuity at +-pi (physically the same)
+		# But represented as two far-apart numbers
 		return np.array(
 			[
 				self.cart_x,
 				self.cart_x_velocity,
-				self.pole1_angle,
+				np.sin(self.pole1_angle),
+				np.cos(self.pole1_angle),
 				self.pole1_angular_velocity,
-				self.pole2_angle,
+				np.sin(self.pole2_angle),
+				np.cos(self.pole2_angle),
 				self.pole2_angular_velocity,
 			],
 			dtype=np.float32,
