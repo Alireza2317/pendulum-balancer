@@ -40,6 +40,12 @@ class CurriculumManager:
 	def level(self) -> float:
 		return self._level
 
+	def set_level(self, level: float) -> None:
+		self._level = max(0.0, min(1.0, level))
+		# Clears the rolling window so the agent has to re-prove itself at this level
+		# before advancing further
+		self._window.clear()
+
 	@property
 	def success_ratio(self) -> float:
 		if not self._window:
