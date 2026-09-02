@@ -66,6 +66,7 @@ class DDPGTrainer:
 		)
 		state = self.env.reset()
 		self.noise.reset()
+		self.noise.decay()
 		done: bool = False
 		total_reward: float = 0
 
