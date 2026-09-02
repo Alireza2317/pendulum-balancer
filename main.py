@@ -25,7 +25,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	buffer = UniformReplayBuffer(cfg.buffer_maxsize)
 	agent = DDPGAgent(cfg)
 	trainer = DDPGTrainer(cfg, env, agent, buffer)
-	checkpointer = ModelCheckpointer(agent)
+	checkpointer = ModelCheckpointer(agent, curriculum=trainer.curriculum)
 
 	if continue_train:
 		checkpointer.load_latest()
@@ -56,6 +56,8 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 			)
 			checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
 			checkpointer.log_scalar("Difficulty Level", difficulty.level, step=episode)
+			checkpointer.log_scalar("Curriculum Success Ratio", trainer.curriculum.success_ratio, step=episode)
+			checkpointer.log_scalar("Exploration Noise Sigma", trainer.noise.sigma, step=episode)
 
 			checkpointer.save(episode)
 
@@ -79,7 +81,7 @@ def run():
 
 			# Step the environment based on the action
 			state, *_ = env.step(action * cfg.max_force)
-			
+
 			time.sleep(1 / 240)
 
 	except KeyboardInterrupt:
@@ -88,4 +90,4 @@ def run():
 
 if __name__ == "__main__":
 	train(continue_train=True, save_log_process=True)
-	# run()
+	run()
