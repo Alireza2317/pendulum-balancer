@@ -41,9 +41,6 @@ class Config:
 	## Max poles velocities
 	max_velocity: float = 10
 
-	## Maximum random deviation (degrees) from vertical when resetting the environment.
-	reset_angle_range_deg: float = 13.0
-
 	## Absolute path of the pendulum urdf file
 	pendulum_urdf_path: str = "assets/urdf/pendulum.urdf"
 
@@ -54,7 +51,32 @@ class Config:
 
 	## Episode termination limitations
 	cart_x_threshold: float = 0.95
-	angle_threshold_deg: float = 18.0
+	## Maximum episode length, independent of angle. Needed because once the
+	## curriculum avoids angle-based termination, angle alone won't end episodes.
+	max_episode_steps: int = 500
+
+	# Curriculum
+	## How far (deg) from vertical each pole is randomized at reset.
+	curriculum_reset_start_deg: float = 5.0
+	curriculum_reset_end_deg: float = 180.0
+
+	## Angle threshold is the randomized angle + the margin
+	## At curriculum_level=0: near-vertical reset, tight threshold (pure balance).
+	## At curriculum_level=1: reset from fully hanging (180 deg), threshold effectively
+	## disabled (>180 deg, i.e. angle can never trigger it)
+	curriculum_margin_start_deg: float = 10.0
+	curriculum_margin_end_deg: float = 181.0
+
+	## Rolling window (in episodes) used to judge whether the agent has mastered
+	## the current difficulty level.
+	curriculum_window: int = 50
+
+	## Fraction of max_episode_steps the agent must survive on average, over the
+	## window, before curriculum difficulty is increased.
+	curriculum_success_ratio: float = 0.9
+
+	## How much curriculum_level (0..1) increases each time the success bar is met.
+	curriculum_step: float = 0.05
 
 	# Exploration
 	## OU noise parameters
