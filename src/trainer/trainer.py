@@ -1,5 +1,3 @@
-from itertools import count
-
 import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
@@ -7,6 +5,7 @@ from src.agent.memory import Batch, IBuffer, Transition
 from src.agent.noise import OUNoise
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
+from src.trainer.curriculum import CurriculumManager, DifficultyParams
 
 
 class DDPGTrainer:
@@ -22,6 +21,7 @@ class DDPGTrainer:
 		self.agent: DDPGAgent = agent
 		self.noise: OUNoise = OUNoise(self.cfg)
 		self.buffer: IBuffer = replay_buffer
+		self.curriculum: CurriculumManager = CurriculumManager(self.cfg)
 
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
 		if len(self.buffer) < self.cfg.buffer_warmup_size:
@@ -42,7 +42,7 @@ class DDPGTrainer:
 			),
 		)
 
-	def run_episode(self) -> tuple[float, float, float, float, float]:
+	def run_episode(self) -> tuple[float, float, float, float, float, DifficultyParams]:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -56,9 +56,14 @@ class DDPGTrainer:
 			- Number of steps survived in the episode.
 			- Average actor loss.
 			- Average critic loss.
-			- Average Q-Values
+			- Average Q-Values.
+			- Curriculum difficulty parameters.
 		"""
-
+		difficulty: DifficultyParams = self.curriculum.current_params()
+		self.env.set_difficulty(
+			reset_angle_range_deg=difficulty.reset_angle_range_deg,
+			angle_threshold_deg=difficulty.angle_threshold_deg,
+		)
 		state = self.env.reset()
 		self.noise.reset()
 		done: bool = False
@@ -69,7 +74,7 @@ class DDPGTrainer:
 		episode_avg_q_vals: list[float] = []
 
 		step: int = 0
-		for step in count():
+		for step in range(self.cfg.max_episode_steps):
 			if done:
 				break
 			# Get the action from the actor
@@ -94,6 +99,9 @@ class DDPGTrainer:
 					critic_losses.append(float(critic_loss))
 					episode_avg_q_vals.append(float(tf.reduce_mean(q_vals)))
 
+		steps_survived: int = step + 1
+		self.curriculum.record_episode(steps_survived)
+
 		avg_actor_loss: float = (
 			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
 		)
@@ -105,4 +113,11 @@ class DDPGTrainer:
 			if episode_avg_q_vals
 			else 0.0
 		)
-		return total_reward, step, avg_actor_loss, avg_critic_loss, avg_q
+		return (
+			total_reward,
+			steps_survived,
+			avg_actor_loss,
+			avg_critic_loss,
+			avg_q,
+			difficulty,
+		)
