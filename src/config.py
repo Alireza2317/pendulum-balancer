@@ -10,7 +10,7 @@ class Config:
 	# Buffer and training
 	buffer_maxsize: int = 300_000
 	buffer_warmup_size: int = 3_000
-	max_episodes: int = 8_000
+	max_episodes: int = 5_000
 	batch_size: int = 128
 
 	# Agent hyperparameters
@@ -41,7 +41,7 @@ class Config:
 	max_velocity: float = 10
 
 	## Maximum random deviation (degrees) from vertical when resetting the environment.
-	reset_angle_range_deg: float = 40.0
+	reset_angle_range_deg: float = 13.0
 
 	## Absolute path of the pendulum urdf file
 	pendulum_urdf_path: str = "assets/urdf/pendulum.urdf"
@@ -53,7 +53,7 @@ class Config:
 
 	## Episode termination limitations
 	cart_x_threshold: float = 0.95
-	angle_threshold_deg: float = 15.0
+	angle_threshold_deg: float = 18.0
 
 	# Exploration
 	## OU noise parameters
