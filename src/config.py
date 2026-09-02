@@ -83,6 +83,8 @@ class Config:
 	ounoise_mu: float = 0.0
 	ounoise_theta: float = 0.15
 	ounoise_sigma: float = 0.2
+	ounoise_sigma_min: float = 0.05
+	ounoise_decay: float = 0.999
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
