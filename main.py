@@ -95,5 +95,5 @@ def run():
 
 
 if __name__ == "__main__":
-	train(continue_train=True, save_log_process=True)
+	# train(continue_train=True, save_log_process=True)
 	run()

@@ -10,7 +10,7 @@ class Config:
 	# Buffer and training
 	buffer_maxsize: int = 300_000
 	buffer_warmup_size: int = 3_000
-	max_episodes: int = 5_000
+	max_episodes: int = 12_000
 	batch_size: int = 128
 
 	# Agent hyperparameters
@@ -84,7 +84,10 @@ class Config:
 	ounoise_theta: float = 0.15
 	ounoise_sigma: float = 0.2
 	ounoise_sigma_min: float = 0.05
-	ounoise_decay: float = 0.999
+	ounoise_decay: float = 0.9997
+
+	## If success ratio is bigger than this, noise decays
+	exploration_decay_unlock_threshold: float = 0.25
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.

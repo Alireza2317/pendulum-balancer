@@ -23,6 +23,8 @@ class DDPGTrainer:
 		self.buffer: IBuffer = replay_buffer
 		self.curriculum: CurriculumManager = CurriculumManager(self.cfg)
 
+		self.exploration_decay_active: bool = False
+
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
 		if len(self.buffer) < self.cfg.buffer_warmup_size:
 			return
@@ -65,8 +67,11 @@ class DDPGTrainer:
 			angle_threshold_deg=difficulty.angle_threshold_deg,
 		)
 		state = self.env.reset()
+
 		self.noise.reset()
-		self.noise.decay()
+		if self.exploration_decay_active:
+			self.noise.decay()
+
 		done: bool = False
 		total_reward: float = 0
 
@@ -102,6 +107,8 @@ class DDPGTrainer:
 
 		steps_survived: int = step + 1
 		self.curriculum.record_episode(steps_survived)
+		if self.curriculum.success_ratio >= self.cfg.exploration_decay_unlock_threshold:
+			self.exploration_decay_active = True
 
 		avg_actor_loss: float = (
 			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
