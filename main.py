@@ -36,7 +36,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	for episode in range(start_episode, start_episode + cfg.max_episodes):
 		print(f"Running episode {episode:4}...")
 
-		episode_reward, steps_survived, actor_loss, critic_loss, avg_q = (
+		episode_reward, steps_survived, actor_loss, critic_loss, avg_q, difficulty = (
 			trainer.run_episode()
 		)
 
@@ -55,6 +55,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 				"Episode Average Critic Loss", critic_loss, step=episode
 			)
 			checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
+			checkpointer.log_scalar("Difficulty Level", difficulty.level, step=episode)
 
 			checkpointer.save(episode)
 
@@ -63,6 +64,8 @@ def run():
 	cfg: Config = Config()
 
 	env = DoublePendulumEnv(cfg, render=True)
+	env.set_difficulty(reset_angle_range_deg=180, angle_threshold_deg=181)
+
 	agent = DDPGAgent(cfg)
 
 	checkpointer = ModelCheckpointer(agent)
@@ -71,14 +74,12 @@ def run():
 	try:
 		state = env.reset()
 		while True:
-			state = env.get_state()
-
 			# Get the action from the actor
 			action: float = agent.get_action(state, noise=0)
 
 			# Step the environment based on the action
-			env.step(action * cfg.max_force)
-
+			state, *_ = env.step(action * cfg.max_force)
+			
 			time.sleep(1 / 240)
 
 	except KeyboardInterrupt:
