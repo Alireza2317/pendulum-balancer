@@ -25,7 +25,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	buffer = UniformReplayBuffer(cfg.buffer_maxsize)
 	agent = DDPGAgent(cfg)
 	trainer = DDPGTrainer(cfg, env, agent, buffer)
-	checkpointer = ModelCheckpointer(agent, curriculum=trainer.curriculum)
+	checkpointer = ModelCheckpointer(agent, trainer)
 
 	if continue_train:
 		checkpointer.load_latest()
@@ -56,8 +56,14 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 			)
 			checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
 			checkpointer.log_scalar("Difficulty Level", difficulty.level, step=episode)
-			checkpointer.log_scalar("Curriculum Success Ratio", trainer.curriculum.success_ratio, step=episode)
-			checkpointer.log_scalar("Exploration Noise Sigma", trainer.noise.sigma, step=episode)
+			checkpointer.log_scalar(
+				"Curriculum Success Ratio",
+				trainer.curriculum.success_ratio,
+				step=episode,
+			)
+			checkpointer.log_scalar(
+				"Exploration Noise Sigma", trainer.noise._sigma, step=episode
+			)
 
 			checkpointer.save(episode)
 
