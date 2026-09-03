@@ -9,7 +9,7 @@ from pathlib import Path
 class Config:
 	# Buffer and training
 	buffer_maxsize: int = 300_000
-	buffer_warmup_size: int = 3_000
+	buffer_warmup_size: int = 4_000
 	max_episodes: int = 12_000
 	batch_size: int = 128
 
@@ -69,29 +69,29 @@ class Config:
 
 	## Rolling window (in episodes) used to judge whether the agent has mastered
 	## the current difficulty level.
-	curriculum_window: int = 50
+	curriculum_window: int = 45
 
 	## Fraction of max_episode_steps the agent must survive on average, over the
 	## window, before curriculum difficulty is increased.
-	curriculum_success_ratio: float = 0.9
+	curriculum_success_ratio: float = 0.8
 
 	## How much curriculum_level (0..1) increases each time the success bar is met.
-	curriculum_step: float = 0.05
+	curriculum_step: float = 0.1
 
 	# Exploration
 	## OU noise parameters
 	ounoise_mu: float = 0.0
 	ounoise_theta: float = 0.15
-	ounoise_sigma: float = 0.2
+	ounoise_sigma: float = 0.20
 	ounoise_sigma_min: float = 0.05
-	ounoise_decay: float = 0.9997
+	ounoise_decay: float = 0.999
 
 	## If success ratio is bigger than this, noise decays
-	exploration_decay_unlock_threshold: float = 0.25
+	exploration_decay_unlock_threshold: float = 0.1
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
-	train_every_n_steps: int = 2
+	train_every_n_steps: int = 1
 
 	# Logging and checkpointing
 	log_every_n_episodes: int = 20
