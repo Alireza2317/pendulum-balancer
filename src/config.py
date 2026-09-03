@@ -87,7 +87,7 @@ class Config:
 	ounoise_decay: float = 0.999
 
 	## If success ratio is bigger than this, noise decays
-	exploration_decay_unlock_threshold: float = 0.06
+	exploration_decay_unlock_threshold: float = 0.07
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.

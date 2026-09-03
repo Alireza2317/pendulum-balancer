@@ -25,7 +25,6 @@ class DDPGTrainer:
 
 		self.exploration_decay_active: bool = False
 
-	@tf.function
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
 		if len(self.buffer) < self.cfg.buffer_warmup_size:
 			return
