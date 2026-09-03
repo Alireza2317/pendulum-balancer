@@ -2,10 +2,10 @@ import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
 from src.agent.memory import Batch, IBuffer, Transition
-from src.agent.noise import OUNoise
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.trainer.curriculum import CurriculumManager, DifficultyParams
+from src.trainer.noise import OUNoise
 
 
 class DDPGTrainer:
