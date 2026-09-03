@@ -5,6 +5,7 @@ from src.agent.memory import Batch, IBuffer, Transition
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.trainer.curriculum import CurriculumManager, DifficultyParams
+from src.trainer.explore import ExplorationScheduler
 from src.trainer.noise import OUNoise
 
 
@@ -22,8 +23,7 @@ class DDPGTrainer:
 		self.noise: OUNoise = OUNoise(self.cfg)
 		self.buffer: IBuffer = replay_buffer
 		self.curriculum: CurriculumManager = CurriculumManager(self.cfg)
-
-		self.exploration_decay_active: bool = False
+		self.exploration_scheduler = ExplorationScheduler(self.cfg, self.noise)
 
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
 		if len(self.buffer) < self.cfg.buffer_warmup_size:
@@ -66,11 +66,12 @@ class DDPGTrainer:
 			reset_angle_range_deg=difficulty.reset_angle_range_deg,
 			angle_threshold_deg=difficulty.angle_threshold_deg,
 		)
-		state = self.env.reset()
 
-		self.noise.reset()
-		if self.exploration_decay_active:
-			self.noise.decay()
+		self.exploration_scheduler.on_episode_start(
+			difficulty.level, self.curriculum.success_ratio
+		)
+
+		state = self.env.reset()
 
 		done: bool = False
 		total_reward: float = 0
@@ -107,8 +108,6 @@ class DDPGTrainer:
 
 		steps_survived: int = step + 1
 		self.curriculum.record_episode(steps_survived)
-		if self.curriculum.success_ratio >= self.cfg.exploration_decay_unlock_threshold:
-			self.exploration_decay_active = True
 
 		avg_actor_loss: float = (
 			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
