@@ -13,7 +13,7 @@ class ModelCheckpointer:
 		trainer: DDPGTrainer | None = None,
 		log_dir: Path | str = Path("logs"),
 		checkpoint_dir: Path | str = Path("checkpoints"),
-		max_to_keep: int = 3,
+		max_to_keep: int = 10,
 	) -> None:
 		self.log_dir = Path(log_dir)
 		self.checkpoint_dir = Path(checkpoint_dir)
