@@ -83,8 +83,9 @@ class Config:
 	ounoise_mu: float = 0.0
 	ounoise_theta: float = 0.15
 	ounoise_sigma: float = 0.20
-	ounoise_sigma_min: float = 0.075
-	ounoise_decay: float = 0.999
+	ounoise_sigma_min: float = 0.09
+	ounoise_sigma_min_max: float = 0.15
+	ounoise_decay: float = 0.9993
 
 	## If success ratio is bigger than this, noise decays
 	exploration_decay_unlock_threshold: float = 0.07
