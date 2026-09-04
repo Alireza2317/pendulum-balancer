@@ -123,11 +123,11 @@ class DoublePendulumEnv:
 		"""Calculates penalty based on angles, position, and action/force."""
 		# Bounded upright-ness cost per pole: 0 when upright, 2 when hanging.
 		# Penalize large angles and deviations from the upright position
-		angle1_cost: float = 1 - np.cos(state.pole1_angle)
-		angle2_cost: float = 1 - np.cos(state.pole2_angle)
+		angle1_cost: float = 0.1 * (1 - np.cos(state.pole1_angle))
+		angle2_cost: float = 0.1 * (1 - np.cos(state.pole2_angle))
 
 		# Penalize cart getting farther from the origin(x=0)
-		cart_x_cost: float = state.cart_x**2
+		cart_x_cost: float = 0.1 * state.cart_x**2
 
 		# Penalize large forces
 		action_cost: float = 0.01 * ((action / self.cfg.max_force) ** 2)

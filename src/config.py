@@ -47,7 +47,7 @@ class Config:
 	## Rewards
 	terminal_penalty: float = 1.0
 	### A small positive constant to encourage staying alive
-	alive_bonus: float = 5e-2
+	alive_bonus: float = 0.5
 
 	## Episode termination limitations
 	cart_x_threshold: float = 0.95
