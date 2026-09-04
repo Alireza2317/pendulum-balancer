@@ -127,7 +127,7 @@ class DoublePendulumEnv:
 		angle2_cost: float = 1 - np.cos(state.pole2_angle)
 
 		# Penalize cart getting farther from the origin(x=0)
-		cart_x_cost: float = 0.1 * (state.cart_x**2)
+		cart_x_cost: float = state.cart_x**2
 
 		# Penalize large forces
 		action_cost: float = 0.01 * ((action / self.cfg.max_force) ** 2)
