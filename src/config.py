@@ -24,6 +24,11 @@ class Config:
 	## Polyak averaging coefficient
 	tau: float = 0.001
 
+	## Policy parameters
+	policy_delay: int = 2  # actor + targets update every N critic updates
+	policy_noise: float = 0.2  # target smoothing noise stddev (in [-1,1] action space)
+	noise_clip: float = 0.5  # clip range for that smoothing noise
+
 	# Physics and environment
 	max_force: float = 30.0
 
