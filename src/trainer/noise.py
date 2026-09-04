@@ -34,6 +34,6 @@ class OUNoise:
 		"""Generate correlated noise step."""
 		dx = self.cfg.ounoise_theta * (
 			self.cfg.ounoise_mu - self.state
-		) + self.cfg.ounoise_sigma * np.random.randn(self.cfg.action_dim)
+		) + self._sigma * np.random.randn(self.cfg.action_dim)
 		self.state += dx
 		return float(self.state[0])
