@@ -57,6 +57,10 @@ class DDPGAgent:
 			for target, main in zip(target_network.variables, main_network.variables):
 				target.assign(target * (1 - self.cfg.tau) + main * self.cfg.tau)
 
+	@tf.function
+	def _fast_inference(self, state_tensor: tf.Tensor) -> tf.Tensor:
+		return self.actor(state_tensor)[0, 0]
+
 	def get_action(self, state: EnvState, noise: float) -> float:
 		"""Runs inference and adds exploration noise during training."""
 		state_tensor: tf.Tensor = tf.convert_to_tensor(
@@ -65,7 +69,7 @@ class DDPGAgent:
 		# Expand state's dimension from (n, ) to (1, n)
 		state_tensor = tf.expand_dims(state_tensor, axis=0)
 
-		action: tf.Tensor = self.actor(state_tensor)[0, 0] + noise
+		action: tf.Tensor = self._fast_inference(state_tensor) + noise
 
 		return float(tf.clip_by_value(action, -1, 1))
 
