@@ -34,8 +34,12 @@ class ModelCheckpointer:
 		self.checkpoint = tf.train.Checkpoint(
 			actor=agent.actor,
 			critic=agent.critic,
+			critic2=agent.critic2,
 			target_actor=agent.target_actor,
 			target_critic=agent.target_critic,
+			target_critic2=agent.target_critic2,
+			actor_optimizer=agent.actor_optimizer,
+			critic_optimizer=agent.critic_optimizer,
 			episode=self.episode_counter,
 			curriculum_level=self.curriculum_level,
 			noise_sigma=self.ounoise_sigma,
@@ -49,10 +53,17 @@ class ModelCheckpointer:
 			self.curriculum_level.assign(self.trainer.curriculum.level)
 			self.ounoise_sigma.assign(self.trainer.noise._sigma)
 
-			# Delete all old buffer files
-			for old_buffer in self.checkpoint_dir.glob("buffer_*.pkl"):
-				old_buffer.unlink(missing_ok=True)
+			# Delete all old window files
+			for old_window in self.checkpoint_dir.glob("window_*.pkl"):
+				old_window.unlink(missing_ok=True)
+			# Save the window
+			window_path = self.checkpoint_dir / f"window_{step}.pkl"
+			self.trainer.curriculum.save(window_path)
 
+			# Delete all old buffer files
+			for old_window in self.checkpoint_dir.glob("buffer_*.pkl"):
+				old_window.unlink(missing_ok=True)
+			# Save the buffer
 			buffer_path = self.checkpoint_dir / f"buffer_{step}.pkl"
 			self.trainer.buffer.save(buffer_path)
 
@@ -69,8 +80,13 @@ class ModelCheckpointer:
 				if episode <= 0:
 					return True
 
-				buffer_path = self.checkpoint_dir / f"buffer_{episode}.pkl"
+				# Load window
+				window_path = self.checkpoint_dir / f"window_{episode}.pkl"
+				if window_path.exists():
+					self.trainer.curriculum.load(window_path)
 
+				# Load buffer
+				buffer_path = self.checkpoint_dir / f"buffer_{episode}.pkl"
 				if buffer_path.exists():
 					self.trainer.buffer.load(buffer_path)
 
