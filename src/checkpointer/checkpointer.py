@@ -17,6 +17,7 @@ class ModelCheckpointer:
 	) -> None:
 		self.log_dir = Path(log_dir)
 		self.checkpoint_dir = Path(checkpoint_dir)
+		self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 		self.trainer = trainer
 		self.episode_counter = tf.Variable(0, dtype=tf.uint64)
 
@@ -48,6 +49,13 @@ class ModelCheckpointer:
 			self.curriculum_level.assign(self.trainer.curriculum.level)
 			self.ounoise_sigma.assign(self.trainer.noise._sigma)
 
+			# Delete all old buffer files
+			for old_buffer in self.checkpoint_dir.glob("buffer_*.pkl"):
+				old_buffer.unlink(missing_ok=True)
+
+			buffer_path = self.checkpoint_dir / f"buffer_{step}.pkl"
+			self.trainer.buffer.save(buffer_path)
+
 		return self.manager.save(checkpoint_number=step)
 
 	def load_latest(self) -> bool:
@@ -56,7 +64,18 @@ class ModelCheckpointer:
 			if self.trainer is not None:
 				self.trainer.curriculum.set_level(float(self.curriculum_level))
 				self.trainer.noise.set_sigma(float(self.ounoise_sigma))
+
+				episode: int = int(self.episode_counter)
+				if episode <= 0:
+					return True
+
+				buffer_path = self.checkpoint_dir / f"buffer_{episode}.pkl"
+
+				if buffer_path.exists():
+					self.trainer.buffer.load(buffer_path)
+
 			return True
+
 		return False
 
 	def log_scalar(self, name: str, value: float, step: int) -> None:
