@@ -1,5 +1,7 @@
+import pickle
 from collections import deque
 from dataclasses import dataclass
+from pathlib import Path
 
 from src.config import Config
 
@@ -96,3 +98,11 @@ class CurriculumManager:
 			angle_threshold_deg=threshold_deg,
 			level=self._level,
 		)
+
+	def save(self, filepath: Path | str) -> None:
+		with open(filepath, "wb") as f:
+			pickle.dump(self._window, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+	def load(self, filepath: Path | str) -> None:
+		with open(filepath, "rb") as f:
+			self._window = pickle.load(f)
