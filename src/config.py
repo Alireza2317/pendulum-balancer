@@ -8,7 +8,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Config:
 	# Buffer and training
-	buffer_maxsize: int = 300_000
+	buffer_maxsize: int = 100_000
 	buffer_warmup_size: int = 4_000
 	max_episodes: int = 50_000
 	batch_size: int = 128
@@ -16,13 +16,13 @@ class Config:
 	# Agent hyperparameters
 	## Learning rates
 	actor_lr: float = 1e-4
-	critic_lr: float = 1e-3
+	critic_lr: float = 5e-4
 
 	## Discount factor
 	gamma: float = 0.99
 
 	## Polyak averaging coefficient
-	tau: float = 0.001
+	tau: float = 0.004
 
 	## Policy parameters
 	policy_delay: int = 2  # actor + targets update every N critic updates
@@ -74,7 +74,7 @@ class Config:
 
 	## Rolling window (in episodes) used to judge whether the agent has mastered
 	## the current difficulty level.
-	curriculum_window: int = 45
+	curriculum_window: int = 40
 
 	## Fraction of max_episode_steps the agent must survive on average, over the
 	## window, before curriculum difficulty is increased.
@@ -89,16 +89,16 @@ class Config:
 	ounoise_mu: float = 0.0
 	ounoise_theta: float = 0.15
 	ounoise_sigma: float = 0.20
-	ounoise_sigma_min: float = 0.09
+	ounoise_sigma_min: float = 0.04
 	ounoise_sigma_min_max: float = 0.15
 	ounoise_decay: float = 0.9993
 
 	## If success ratio is bigger than this, noise decays
-	exploration_decay_unlock_threshold: float = 0.07
+	exploration_decay_unlock_threshold: float = 0.1
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
-	train_every_n_steps: int = 1
+	train_every_n_steps: int = 2
 
 	# Logging and checkpointing
 	log_every_n_episodes: int = 20
