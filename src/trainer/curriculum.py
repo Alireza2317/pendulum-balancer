@@ -52,6 +52,13 @@ class CurriculumManager:
 			return 0.0
 		return sum(self._window) / len(self._window)
 
+	def current_success_ratio_threshold(self, level: float) -> float:
+		return self._lerp(
+			self.cfg.curriculum_success_ratio,
+			self.cfg.curriculum_success_ratio_min,
+			level,
+		)
+
 	def record_episode(self, steps_survived: int) -> None:
 		"""Call once per completed episode with the number of steps it lasted."""
 		fraction = min(1.0, steps_survived / self.cfg.max_episode_steps)
@@ -59,7 +66,7 @@ class CurriculumManager:
 
 		if (
 			len(self._window) == self._window.maxlen
-			and self.success_ratio >= self.cfg.curriculum_success_ratio
+			and self.success_ratio >= self.current_success_ratio_threshold(self._level)
 			and self._level < 1.0
 		):
 			self._level = min(1.0, self._level + self.cfg.curriculum_step)

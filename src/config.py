@@ -78,7 +78,8 @@ class Config:
 
 	## Fraction of max_episode_steps the agent must survive on average, over the
 	## window, before curriculum difficulty is increased.
-	curriculum_success_ratio: float = 0.8
+	curriculum_success_ratio: float = 0.7
+	curriculum_success_ratio_min: float = 0.4
 
 	## How much curriculum_level (0..1) increases each time the success bar is met.
 	curriculum_step: float = 0.05
