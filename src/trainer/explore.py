@@ -43,10 +43,10 @@ class ExplorationScheduler:
 		Sigma to reintroduce when the curriculum advances to `level`.
 		Interpolates from the minimum noise at level 0 to the maximum noise at level 1.
 		Lower levels mostly need refinement of existing skill, higher levels need real
-		exploration to discover recovery/swing-up behavior.
-		Never decreases sigma on a level-up.
+		exploration to discover recovery/swing-up behavior. It gives stronger bumps at
+		early levels. It never decreases sigma on a level-up.
 		"""
-		reset_sigma = self._lerp(min_sigma, self.cfg.ounoise_sigma, level)
+		reset_sigma = self._lerp(min_sigma, self.cfg.ounoise_sigma, math.sqrt(level))
 
 		return max(reset_sigma, self.noise.sigma)
 
