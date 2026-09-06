@@ -37,6 +37,11 @@ class CurriculumManager:
 		self.cfg = cfg
 		self._level: float = 0.0
 		self._window: deque[float] = deque(maxlen=cfg.curriculum_window)
+		self._episodes_since_advance: int = 0
+
+	@property
+	def episodes_since_advance(self) -> int:
+		return self._episodes_since_advance
 
 	@property
 	def level(self) -> float:
@@ -73,6 +78,9 @@ class CurriculumManager:
 		):
 			self._level = min(1.0, self._level + self.cfg.curriculum_step)
 			self._window.clear()
+			self._episodes_since_advance = 0
+		else:
+			self._episodes_since_advance += 1
 
 	@staticmethod
 	def _lerp(a: float, b: float, t: float) -> float:

@@ -68,7 +68,9 @@ class DDPGTrainer:
 		)
 
 		self.exploration_scheduler.on_episode_start(
-			difficulty.level, self.curriculum.success_ratio
+			difficulty.level,
+			self.curriculum.success_ratio,
+			self.curriculum.episodes_since_advance,
 		)
 
 		state = self.env.reset()
