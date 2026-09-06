@@ -22,18 +22,17 @@ class OUNoise:
 	def set_sigma(self, value: float) -> None:
 		self._sigma = value
 
-	def decay(self) -> None:
+	def decay(self, min_sigma: float | None = None) -> None:
 		"""
 		Anneals exploration magnitude toward ounoise_sigma_min. To be Called once
 		per episode."""
-		self._sigma = max(
-			self.cfg.ounoise_sigma_min, self._sigma * self.cfg.ounoise_decay
-		)
+		floor: float = self.cfg.ounoise_sigma_min if min_sigma is None else min_sigma
+		self._sigma = max(floor, self._sigma * self.cfg.ounoise_decay)
 
 	def sample(self) -> float:
 		"""Generate correlated noise step."""
 		dx = self.cfg.ounoise_theta * (
 			self.cfg.ounoise_mu - self.state
-		) + self.cfg.ounoise_sigma * np.random.randn(self.cfg.action_dim)
+		) + self._sigma * np.random.randn(self.cfg.action_dim)
 		self.state += dx
 		return float(self.state[0])

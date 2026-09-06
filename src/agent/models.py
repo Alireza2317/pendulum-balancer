@@ -5,8 +5,8 @@ import tensorflow.keras as tfk
 class Actor(tfk.Model):
 	def __init__(self) -> None:
 		super().__init__()
-		self.dense1 = tfk.layers.Dense(256, activation="relu")
-		self.dense2 = tfk.layers.Dense(256, activation="relu")
+		self.dense1 = tfk.layers.Dense(64, activation="relu")
+		self.dense2 = tfk.layers.Dense(64, activation="relu")
 		self.out = tfk.layers.Dense(1, activation="tanh")
 
 	def call(self, state: tf.Tensor) -> tf.Tensor:
@@ -26,8 +26,8 @@ class Critic(tfk.Model):
 		self.action_dense = tfk.layers.Dense(32, activation="relu")
 
 		self.cat = tfk.layers.Concatenate()
-		self.dense1 = tfk.layers.Dense(256, activation="relu")
-		self.dense2 = tfk.layers.Dense(256, activation="relu")
+		self.dense1 = tfk.layers.Dense(64, activation="relu")
+		self.dense2 = tfk.layers.Dense(64, activation="relu")
 
 		# Since Q-values are real numbers, they don't need any activation
 		self.out = tfk.layers.Dense(1, activation=None)

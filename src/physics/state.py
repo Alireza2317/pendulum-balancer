@@ -1,7 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import numpy.typing as npt
+
+from src.physics.angles import wrap_angle
 
 
 @dataclass(frozen=True)
@@ -13,23 +15,35 @@ class EnvState:
 	pole2_angle: float
 	pole2_angular_velocity: float
 
-	def nparray(self) -> npt.NDArray[np.float32]:
-		# Angles are fed as (sin, cos) rather than raw radians.
-		# Raw angle has a discontinuity at +-pi (physically the same)
-		# But represented as two far-apart numbers
-		return np.array(
-			[
-				self.cart_x,
-				self.cart_x_velocity,
-				np.sin(self.pole1_angle),
-				np.cos(self.pole1_angle),
-				self.pole1_angular_velocity,
-				np.sin(self.pole2_angle),
-				np.cos(self.pole2_angle),
-				self.pole2_angular_velocity,
-			],
-			dtype=np.float32,
+	_cached_array: npt.NDArray[np.float32] = field(init=False, repr=False)
+
+	def __post_init__(self) -> None:
+		object.__setattr__(self, "pole1_angle", wrap_angle(self.pole1_angle))
+		object.__setattr__(self, "pole2_angle", wrap_angle(self.pole2_angle))
+
+		object.__setattr__(
+			self,
+			"_cached_array",
+			np.array(
+				[
+					self.cart_x,
+					self.cart_x_velocity,
+					# Angles are fed as (sin, cos) rather than raw radians.
+					# Raw angle has a discontinuity at +-pi (physically the same)
+					# But represented as two far-apart numbers
+					np.sin(self.pole1_angle),
+					np.cos(self.pole1_angle),
+					self.pole1_angular_velocity,
+					np.sin(self.pole2_angle),
+					np.cos(self.pole2_angle),
+					self.pole2_angular_velocity,
+				],
+				dtype=np.float32,
+			),
 		)
+
+	def nparray(self) -> npt.NDArray[np.float32]:
+		return self._cached_array
 
 	def __repr__(self) -> str:
 		rp: str = "EnvState(\n"

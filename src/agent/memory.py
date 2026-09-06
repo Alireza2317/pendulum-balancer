@@ -1,7 +1,9 @@
+import pickle
 import random
 from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
@@ -48,6 +50,16 @@ class IBuffer(ABC):
 		"""Clears all the transitions currently stored in the buffer."""
 		pass
 
+	@abstractmethod
+	def save(self, filepath: Path | str) -> None:
+		"""Saves the replay buffer to disk."""
+		pass
+
+	@abstractmethod
+	def load(self, filepath: Path | str) -> None:
+		"""Loads the replay buffer from disk."""
+		pass
+
 
 class UniformReplayBuffer(IBuffer):
 	def __init__(self, capacity: int) -> None:
@@ -74,3 +86,11 @@ class UniformReplayBuffer(IBuffer):
 
 	def clear(self) -> None:
 		self._buffer.clear()
+
+	def save(self, filepath: Path | str) -> None:
+		with open(filepath, "wb") as f:
+			pickle.dump(self._buffer, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+	def load(self, filepath: Path | str) -> None:
+		with open(filepath, "rb") as f:
+			self._buffer = pickle.load(f)

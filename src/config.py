@@ -8,7 +8,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Config:
 	# Buffer and training
-	buffer_maxsize: int = 300_000
+	buffer_maxsize: int = 100_000
 	buffer_warmup_size: int = 4_000
 	max_episodes: int = 50_000
 	batch_size: int = 128
@@ -16,13 +16,18 @@ class Config:
 	# Agent hyperparameters
 	## Learning rates
 	actor_lr: float = 1e-4
-	critic_lr: float = 1e-3
+	critic_lr: float = 5e-4
 
 	## Discount factor
-	gamma: float = 0.99
+	gamma: float = 0.98
 
 	## Polyak averaging coefficient
-	tau: float = 0.001
+	tau: float = 0.004
+
+	## Policy parameters
+	policy_delay: int = 2  # actor + targets update every N critic updates
+	policy_noise: float = 0.2  # target smoothing noise stddev (in [-1,1] action space)
+	noise_clip: float = 0.5  # clip range for that smoothing noise
 
 	# Physics and environment
 	max_force: float = 30.0
@@ -46,8 +51,13 @@ class Config:
 
 	## Rewards
 	terminal_penalty: float = 1.0
-	### A small positive constant to encourage staying alive
-	alive_bonus: float = 5e-2
+	### A positive constant to encourage staying alive
+	alive_bonus: float = 5.0
+
+	### Positive progess reward, for immediate local payoff for angle recovery
+	progress_reward_scale: float = 2.0
+	### Clamp on raw (pre-scale) cost delta, in case of pathological single-step swing
+	progress_cost_clip: float = 1.0
 
 	## Episode termination limitations
 	cart_x_threshold: float = 0.95
@@ -69,11 +79,12 @@ class Config:
 
 	## Rolling window (in episodes) used to judge whether the agent has mastered
 	## the current difficulty level.
-	curriculum_window: int = 45
+	curriculum_window: int = 40
 
 	## Fraction of max_episode_steps the agent must survive on average, over the
 	## window, before curriculum difficulty is increased.
-	curriculum_success_ratio: float = 0.8
+	curriculum_success_ratio: float = 0.7
+	curriculum_success_ratio_min: float = 0.4
 
 	## How much curriculum_level (0..1) increases each time the success bar is met.
 	curriculum_step: float = 0.1
@@ -83,15 +94,16 @@ class Config:
 	ounoise_mu: float = 0.0
 	ounoise_theta: float = 0.15
 	ounoise_sigma: float = 0.20
-	ounoise_sigma_min: float = 0.075
-	ounoise_decay: float = 0.999
+	ounoise_sigma_min: float = 0.04
+	ounoise_sigma_min_max: float = 0.15
+	ounoise_decay: float = 0.9993
 
 	## If success ratio is bigger than this, noise decays
-	exploration_decay_unlock_threshold: float = 0.07
+	exploration_decay_unlock_threshold: float = 0.1
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
-	train_every_n_steps: int = 1
+	train_every_n_steps: int = 2
 
 	# Logging and checkpointing
 	log_every_n_episodes: int = 20

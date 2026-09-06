@@ -24,25 +24,39 @@ class ExplorationScheduler:
 		if not self._exploration_decay_active:
 			return
 
+		min_sigma: float = self._min_sigma_for_level(level)
+
 		if leveled_up:
 			# Level-up occured
 			# Set sigma to its new value
-			self.noise.set_sigma(self._sigma_for_new_level(level))
+			self.noise.set_sigma(self._sigma_for_new_level(level, min_sigma))
 		else:
 			# Normal decay, based on previous values
-			self.noise.decay()
+			self.noise.decay(min_sigma)
 
-	def _sigma_for_new_level(self, level: float) -> float:
+	@staticmethod
+	def _lerp(a: float, b: float, t: float) -> float:
+		return a + (b - a) * t
+
+	def _sigma_for_new_level(self, level: float, min_sigma: float) -> float:
 		"""
 		Sigma to reintroduce when the curriculum advances to `level`.
-		Interpolates from a partial reset (min_fraction) at level 0 to a full reset
-		(max_fraction) at level 1 -- lower levels mostly need refinement of existing
-		skill, higher levels need real exploration to discover recovery/swing-up
-		behavior. Never decreases sigma on a level-up.
+		Interpolates from the minimum noise at level 0 to the maximum noise at level 1.
+		Lower levels mostly need refinement of existing skill, higher levels need real
+		exploration to discover recovery/swing-up behavior. It gives stronger bumps at
+		early levels. It never decreases sigma on a level-up.
 		"""
-		min_fraction = 0.5
-		max_fraction = 1.0
-		fraction = min_fraction + (max_fraction - min_fraction) * level
-		reset_sigma = fraction * self.cfg.ounoise_sigma
+		reset_sigma = self._lerp(min_sigma, self.cfg.ounoise_sigma, math.sqrt(level))
 
 		return max(reset_sigma, self.noise.sigma)
+
+	def _min_sigma_for_level(self, level: float) -> float:
+		"""
+		Resting noise floor for the current curriculum level. Interpolates from
+		ounoise_sigma_min at level 0 to ounoise_sigma_min_max at level 1. Harder levels
+		(recovery/swing-up) plausibly still need occasional large corrective pushes even
+		once "converged", unlike fine balance.
+		"""
+		return self._lerp(
+			self.cfg.ounoise_sigma_min, self.cfg.ounoise_sigma_min_max, level
+		)
