@@ -5,6 +5,7 @@ import pybullet as p
 import pybullet_data
 
 from src.config import Config
+from src.physics.angles import abs2rel, denormalize_angle, normalize_angle, rel2abs
 from src.physics.state import EnvState
 
 
@@ -67,23 +68,18 @@ class DoublePendulumEnv:
 		pole1_info = p.getJointState(self.cart_id, 1, physicsClientId=self.client_id)
 		pole2_info = p.getJointState(self.cart_id, 2, physicsClientId=self.client_id)
 
-		# Since 0 degrees means vertical down, and we want vertical up (180 degrees)
-		# Normalize the angles so, upright means 0 degree
-
-		# Shifts pi to 0 (because upright is pi relative to the cart)
-		normalized_angle1: float = (pole1_info[0] % (2 * np.pi)) - np.pi
-
-		# Wraps between -pi and pi, keeping 0 as 0 (because upright is 0 relative to Pole 1)
-		normalized_angle2: float = (pole2_info[0] + np.pi) % (2 * np.pi) - np.pi
+		angle1: float = pole1_info[0]
+		angle2_rel: float = pole2_info[0]
+		angle2_abs: float = rel2abs(angle1, angle2_rel)
 
 		state: EnvState = EnvState(
 			cart_x=cart_info[0],
 			cart_x_velocity=cart_info[1],
-			pole1_angle=normalized_angle1,
+			pole1_angle=normalize_angle(angle1),
 			pole1_angular_velocity=float(
 				np.clip(pole1_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
 			),
-			pole2_angle=normalized_angle2,
+			pole2_angle=normalize_angle(angle2_abs),
 			pole2_angular_velocity=float(
 				np.clip(pole2_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
 			),
@@ -91,32 +87,59 @@ class DoublePendulumEnv:
 
 		return state
 
-	def reset(self) -> EnvState:
-		"""Resets the environment and returns the initial state."""
-		# Set cart's x and x velocity to 0
+	def _set_state(self, state: EnvState) -> None:
+		"""
+		Takes in a EnvState object and applies it to the environment.
+		It also converts the absolute angle form to the relative form which is needed
+		by pybullet's system.
+		"""
+		# Cart
 		p.resetJointState(
 			self.cart_id,
 			jointIndex=0,  # The cart's index itself, inside the urdf file
-			targetValue=0,
-			targetVelocity=0,
+			targetValue=state.cart_x,
+			targetVelocity=state.cart_x_velocity,
 			physicsClientId=self.client_id,
 		)
 
-		for joint_index in (1, 2):
-			DELTA_DEG: float = self._reset_angle_range_deg
-			if joint_index == 1:
-				random_angle_deg = 180 + np.random.uniform(-DELTA_DEG, +DELTA_DEG)
-			else:
-				random_angle_deg = np.random.uniform(-DELTA_DEG, DELTA_DEG)
+		angle1_original: float = denormalize_angle(state.pole1_angle)
+		# Pole 1
+		p.resetJointState(
+			self.cart_id,
+			jointIndex=1,  # Pole 1 index
+			targetValue=angle1_original,
+			targetVelocity=state.pole1_angular_velocity,
+			physicsClientId=self.client_id,
+		)
 
-			p.resetJointState(
-				self.cart_id,
-				jointIndex=joint_index,
-				targetValue=np.deg2rad(random_angle_deg),
-				targetVelocity=0,
-				physicsClientId=self.client_id,
-			)
+		angle2_original: float = denormalize_angle(state.pole2_angle)
+		pole2_angle_relative: float = abs2rel(angle1_original, angle2_original)
+		# Pole 2
+		p.resetJointState(
+			self.cart_id,
+			jointIndex=2,  # Pole 2 index
+			targetValue=pole2_angle_relative,
+			targetVelocity=state.pole2_angular_velocity,
+			physicsClientId=self.client_id,
+		)
 
+	def reset(self) -> EnvState:
+		"""Resets the environment randomly and returns the initial state."""
+		DELTA_DEG: float = self._reset_angle_range_deg
+
+		angle1_random_deg = np.random.uniform(-DELTA_DEG, +DELTA_DEG)
+		angle2_random_deg = np.random.uniform(-DELTA_DEG, DELTA_DEG)
+
+		random_state: EnvState = EnvState(
+			cart_x=0,
+			cart_x_velocity=0,
+			pole1_angle=np.deg2rad(angle1_random_deg),
+			pole2_angle=np.deg2rad(angle2_random_deg),
+			pole1_angular_velocity=0,
+			pole2_angular_velocity=0,
+		)
+
+		self._set_state(random_state)
 		return self.get_state()
 
 	def _calculate_reward(self, state: EnvState, action: float) -> float:
