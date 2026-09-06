@@ -140,27 +140,49 @@ class DoublePendulumEnv:
 		)
 
 		self._set_state(random_state)
+		self._prev_cost: float = self._cost(random_state)
+
 		return self.get_state()
 
-	def _calculate_reward(self, state: EnvState, action: float) -> float:
-		"""Calculates penalty based on angles, position, and action/force."""
+	def _cost(self, state: EnvState) -> float:
+		"""Combined, bounded cost which is 0 for perfectly upright and centered cart"""
 		# Bounded upright-ness cost per pole: 0 when upright, 2 when hanging.
 		# Penalize large angles and deviations from the upright position
-		angle1_cost: float = 0.1 * (1 - np.cos(state.pole1_angle))
-		angle2_cost: float = 0.1 * (1 - np.cos(state.pole2_angle))
+		angle1_cost: float = 1 - np.cos(state.pole1_angle)
+		angle2_cost: float = 1 - np.cos(state.pole2_angle)
 
 		# Penalize cart getting farther from the origin(x=0)
-		cart_x_cost: float = 0.1 * state.cart_x**2
+		cart_x_cost: float = state.cart_x**2
 
-		# Penalize large forces
-		action_cost: float = 0.01 * ((action / self.cfg.max_force) ** 2)
+		return angle1_cost + angle2_cost + cart_x_cost
+
+	def _calculate_reward(self, state: EnvState) -> float:
+		"""
+		Reward is kept strictly positive: alive_bonus is set above the worst possible
+		combined cost, so ending the episode to escape negative accumulation is worse
+		than positive future reward. A potential-based progress term additionally
+		rewards genuinely reducing the cost step-to-step, not just its absolute size.
+		"""
+		cost: float = self._cost(state)
+
+		# Reward for reducing cost since the previous step.
+		# (positive if improving, negative if getting worse).
+		# Clipped defensively, so round-trips (worsen then recover to the same angle)
+		# nets to ~0, avoiding farming exploit from oscillating in place.
+		cost_delta: float = np.clip(
+			self._prev_cost - cost,
+			-self.cfg.progress_cost_clip,
+			self.cfg.progress_cost_clip,
+		)
+
+		self._prev_cost = cost
+
+		progress_reward: float = self.cfg.progress_reward_scale * cost_delta
 
 		return (
 			self.cfg.alive_bonus
-			- angle1_cost
-			- angle2_cost
-			- cart_x_cost
-			# - action_cost
+			+ progress_reward
+			- cost
 			- (self.cfg.terminal_penalty if self._is_hard_fail(state) else 0)
 		)
 
@@ -204,7 +226,7 @@ class DoublePendulumEnv:
 		p.stepSimulation(physicsClientId=self.client_id)
 
 		new_state: EnvState = self.get_state()
-		reward: float = self._calculate_reward(new_state, force)
+		reward: float = self._calculate_reward(new_state)
 		done: bool = self._is_done(new_state)
 		return new_state, reward, done, {}
 

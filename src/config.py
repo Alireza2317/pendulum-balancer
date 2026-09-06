@@ -19,7 +19,7 @@ class Config:
 	critic_lr: float = 5e-4
 
 	## Discount factor
-	gamma: float = 0.99
+	gamma: float = 0.98
 
 	## Polyak averaging coefficient
 	tau: float = 0.004
@@ -51,8 +51,13 @@ class Config:
 
 	## Rewards
 	terminal_penalty: float = 1.0
-	### A small positive constant to encourage staying alive
-	alive_bonus: float = 0.5
+	### A positive constant to encourage staying alive
+	alive_bonus: float = 5.0
+
+	### Positive progess reward, for immediate local payoff for angle recovery
+	progress_reward_scale: float = 2.0
+	### Clamp on raw (pre-scale) cost delta, in case of pathological single-step swing
+	progress_cost_clip: float = 1.0
 
 	## Episode termination limitations
 	cart_x_threshold: float = 0.95
