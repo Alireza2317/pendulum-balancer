@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
+from src.physics.angles import wrap_angle
+
 
 @dataclass(frozen=True)
 class EnvState:
@@ -16,6 +18,9 @@ class EnvState:
 	_cached_array: npt.NDArray[np.float32] = field(init=False, repr=False)
 
 	def __post_init__(self) -> None:
+		object.__setattr__(self, "pole1_angle", wrap_angle(self.pole1_angle))
+		object.__setattr__(self, "pole2_angle", wrap_angle(self.pole2_angle))
+
 		object.__setattr__(
 			self,
 			"_cached_array",
