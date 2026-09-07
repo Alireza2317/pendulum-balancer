@@ -228,7 +228,12 @@ class DoublePendulumEnv:
 		new_state: EnvState = self.get_state()
 		reward: float = self._calculate_reward(new_state)
 		done: bool = self._is_done(new_state)
-		return new_state, reward, done, {}
+		info: dict = (
+			{"Reason": "Cart" if self._is_hard_fail(new_state) else "Poles"}
+			if done
+			else {}
+		)
+		return new_state, reward, done, info
 
 	def close(self) -> None:
 		p.disconnect(physicsClientId=self.client_id)

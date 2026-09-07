@@ -86,12 +86,11 @@ def run():
 			action: float = agent.get_action(state, noise=0)
 
 			# Step the environment based on the action
-			state, _, done, _ = env.step(action * cfg.max_force)
-
+			state, _, done, info = env.step(action * cfg.max_force)
 			time.sleep(1 / 240)
 
 			if done:
-				print("Died!")
+				print(f"Died! {info}")
 				state = env.reset()
 
 	except KeyboardInterrupt:
