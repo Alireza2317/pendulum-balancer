@@ -28,7 +28,9 @@ class ExplorationScheduler:
 
 		min_sigma: float = self._min_sigma_for_level(level)
 
-		stagnant: bool = episodes_since_advance >= self.cfg.stagnation_reheat_interval
+		stagnant: bool = (
+			episodes_since_advance % self.cfg.stagnation_reheat_interval == 0
+		)
 
 		if leveled_up:
 			# Set sigma to its new value
