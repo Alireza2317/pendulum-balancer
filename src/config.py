@@ -52,7 +52,7 @@ class Config:
 	## Rewards
 	terminal_penalty: float = 1.0
 	### A positive constant to encourage staying alive
-	alive_bonus: float = 5.0
+	alive_bonus: float = 6.5
 
 	### Positive progess reward, for immediate local payoff for angle recovery
 	progress_reward_scale: float = 2.0

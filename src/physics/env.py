@@ -156,7 +156,17 @@ class DoublePendulumEnv:
 		# Penalize cart getting farther from the origin(x=0)
 		cart_x_cost: float = state.cart_x**2
 
-		return angle1_cost + angle2_cost + cart_x_cost
+		# Penalize cart's velocity, to avoid slowly drifting to edges
+		cart_v_cost = 0.15 * (
+			np.clip(
+				state.cart_x_velocity,
+				self.cfg.max_velocity / np.pi,
+				self.cfg.max_velocity / np.pi,
+			)
+			** 2
+		)
+
+		return angle1_cost + angle2_cost + cart_x_cost + cart_v_cost
 
 	def _calculate_reward(self, state: EnvState) -> float:
 		"""
