@@ -74,7 +74,9 @@ class DoublePendulumEnv:
 
 		state: EnvState = EnvState(
 			cart_x=cart_info[0],
-			cart_x_velocity=cart_info[1],
+			cart_x_velocity=np.clip(
+				cart_info[1], -self.cfg.max_velocity, self.cfg.max_velocity
+			),
 			pole1_angle=normalize_angle(angle1),
 			pole1_angular_velocity=float(
 				np.clip(pole1_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
