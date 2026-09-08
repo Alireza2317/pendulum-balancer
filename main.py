@@ -1,4 +1,8 @@
 import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+
 import random
 import time
 
@@ -12,7 +16,6 @@ from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.trainer.trainer import DDPGTrainer
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 # random.seed(23)
 # np.random.seed(23)
 # tf.random.set_seed(23)
@@ -22,64 +25,76 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 	cfg: Config = Config()
 
 	env = DoublePendulumEnv(cfg, render=False)
-	buffer = UniformReplayBuffer(cfg.buffer_maxsize)
-	agent = DDPGAgent(cfg)
-	trainer = DDPGTrainer(cfg, env, agent, buffer)
-	checkpointer = ModelCheckpointer(agent, trainer)
+	try:
+		buffer = UniformReplayBuffer(cfg.buffer_maxsize)
+		agent = DDPGAgent(cfg)
+		trainer = DDPGTrainer(cfg, env, agent, buffer)
+		checkpointer = ModelCheckpointer(agent, trainer)
 
-	if continue_train:
-		checkpointer.load_latest()
-		start_episode: int = int(checkpointer.episode_counter) + 1
-	else:
-		start_episode = 1
+		if continue_train:
+			checkpointer.load_latest()
+			start_episode: int = int(checkpointer.episode_counter) + 1
+		else:
+			start_episode = 1
 
-	for episode in range(start_episode, start_episode + cfg.max_episodes):
-		print(f"Running episode {episode:4}...")
+		for episode in range(start_episode, start_episode + cfg.max_episodes):
+			print(f"Running episode {episode:4}...")
 
-		episode_reward, steps_survived, actor_loss, critic_loss, avg_q, difficulty = (
-			trainer.run_episode()
-		)
+			(
+				episode_reward,
+				steps_survived,
+				actor_loss,
+				critic_loss,
+				avg_q,
+				difficulty,
+			) = trainer.run_episode()
 
-		if save_log_process and episode % cfg.log_every_n_episodes == 0:
-			checkpointer.episode_counter.assign(episode)
-			checkpointer.log_scalar(
-				"Episode Total Reward", episode_reward, step=episode
-			)
-			checkpointer.log_scalar(
-				"Steps Survived in Each Episode", steps_survived, step=episode
-			)
-			checkpointer.log_scalar(
-				"Episode Average Actor Loss", actor_loss, step=episode
-			)
-			checkpointer.log_scalar(
-				"Episode Average Critic Loss", critic_loss, step=episode
-			)
-			checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
-			checkpointer.log_scalar("Difficulty Level", difficulty.level, step=episode)
-			checkpointer.log_scalar(
-				"Curriculum Success Ratio",
-				trainer.curriculum.success_ratio,
-				step=episode,
-			)
-			checkpointer.log_scalar(
-				"Exploration Noise Sigma", trainer.noise._sigma, step=episode
-			)
+			if save_log_process and episode % cfg.log_every_n_episodes == 0:
+				checkpointer.episode_counter.assign(episode)
+				checkpointer.log_scalar(
+					"Episode Total Reward", episode_reward, step=episode
+				)
+				checkpointer.log_scalar(
+					"Steps Survived in Each Episode", steps_survived, step=episode
+				)
+				checkpointer.log_scalar(
+					"Episode Average Actor Loss", actor_loss, step=episode
+				)
+				checkpointer.log_scalar(
+					"Episode Average Critic Loss", critic_loss, step=episode
+				)
+				checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
+				checkpointer.log_scalar(
+					"Difficulty Level", difficulty.level, step=episode
+				)
+				checkpointer.log_scalar(
+					"Curriculum Success Ratio",
+					trainer.curriculum.success_ratio,
+					step=episode,
+				)
+				checkpointer.log_scalar(
+					"Exploration Noise Sigma", trainer.noise._sigma, step=episode
+				)
 
-			checkpointer.save(episode)
+				checkpointer.save(episode)
+	finally:
+		env.close()
 
 
 def run():
 	cfg: Config = Config()
 
 	env = DoublePendulumEnv(cfg, render=True)
-	env.set_difficulty(reset_angle_range_deg=180, angle_threshold_deg=181)
-
-	agent = DDPGAgent(cfg)
-
-	checkpointer = ModelCheckpointer(agent)
-	checkpointer.load_latest()
-
 	try:
+		env.set_difficulty(reset_angle_range_deg=180, angle_threshold_deg=181)
+		agent = DDPGAgent(cfg)
+		checkpointer = ModelCheckpointer(agent)
+
+		if not checkpointer.load_latest():
+			raise FileNotFoundError("No checkpoints found!")
+
+		print("Checkpoint loaded successfully!")
+
 		state = env.reset()
 		while True:
 			# Get the action from the actor
@@ -94,6 +109,8 @@ def run():
 				state = env.reset()
 
 	except KeyboardInterrupt:
+		print("Closing app...")
+	finally:
 		env.close()
 
 
