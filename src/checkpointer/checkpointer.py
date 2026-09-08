@@ -31,7 +31,10 @@ class ModelCheckpointer:
 		# OU noise sigma since it changes over time
 
 		self.ounoise_sigma = tf.Variable(
-			tf.constant(0 if trainer is None else trainer.noise.sigma, dtype=tf.float32)
+			tf.constant(
+				0 if trainer is None else trainer.noise.sigma, dtype=tf.float32
+			),
+			trainable=False,
 		)
 
 		self.writer = tf.summary.create_file_writer(str(self.log_dir))
@@ -53,9 +56,10 @@ class ModelCheckpointer:
 		)
 
 	def save(self, step: int) -> str | None:
+		self.episode_counter.assign(step)
 		if self.trainer is not None:
 			self.curriculum_level.assign(self.trainer.curriculum.level)
-			self.ounoise_sigma.assign(self.trainer.noise._sigma)
+			self.ounoise_sigma.assign(self.trainer.noise.sigma)
 
 			# Delete all old window files
 			for old_window in self.checkpoint_dir.glob("window_*.pkl"):
