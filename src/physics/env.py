@@ -18,9 +18,11 @@ from src.physics.state import EnvState
 
 class DoublePendulumEnv:
 	def __init__(self, config: Config, render: bool = True) -> None:
+		self.cfg = config
+
 		connection_mode = p.GUI if render else p.DIRECT
 		self.client_id: int = p.connect(connection_mode)
-		self.cfg = config
+		p.setTimeStep(self.cfg.dt, physicsClientId=self.client_id)
 
 		p.setAdditionalSearchPath(
 			pybullet_data.getDataPath(), physicsClientId=self.client_id
@@ -88,21 +90,11 @@ class DoublePendulumEnv:
 
 		state: EnvState = EnvState(
 			cart_x=cart_info[0],
-			cart_x_velocity=np.clip(
-				cart_info[1], -self.cfg.max_velocity, self.cfg.max_velocity
-			),
+			cart_x_velocity=cart_info[1],
 			pole1_angle=normalize_angle(angle1),
-			pole1_angular_velocity=float(
-				np.clip(
-					pole1_vel_normalized, -self.cfg.max_velocity, self.cfg.max_velocity
-				)
-			),
+			pole1_angular_velocity=pole1_vel_normalized,
 			pole2_angle=normalize_angle(angle2_abs),
-			pole2_angular_velocity=float(
-				np.clip(
-					pole2_vel_normalized, -self.cfg.max_velocity, self.cfg.max_velocity
-				)
-			),
+			pole2_angular_velocity=pole2_vel_normalized,
 		)
 
 		return state

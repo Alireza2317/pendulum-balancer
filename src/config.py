@@ -34,6 +34,9 @@ class Config:
 	# Physics and environment
 	max_force: float = 30.0
 
+	# Time step
+	dt: float = 1.0 / 240.0
+
 	## State and action
 	## 8 = cart_x, cart_x_vel, sin(a1), cos(a1), a1_vel, sin(a2), cos(a2), a2_vel
 	state_dim: int = 8
@@ -129,8 +132,8 @@ class Config:
 			raise ValueError("max_episode_steps must be a positive integer!")
 		if self.curriculum_window <= 0:
 			raise ValueError("curriculum_window must be a positive integer!")
-		if self.stagnation_reheat_interval <= 0:
-			raise ValueError("stagnation_reheat_interval must be a positive integer!")
+		if self.dt <= 0:
+			raise ValueError("dt (Physics time step) must be positive!")
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)

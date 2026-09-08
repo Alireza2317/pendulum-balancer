@@ -102,7 +102,7 @@ def run():
 
 			# Step the environment based on the action
 			state, _, done, info = env.step(action * cfg.max_force)
-			time.sleep(1 / 240)
+			time.sleep(cfg.dt)
 
 			if done:
 				print(f"Died! {info}")
