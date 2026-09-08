@@ -21,7 +21,7 @@ class Config:
 	critic_lr: float = 5e-4
 
 	## Discount factor
-	gamma: float = 0.98
+	gamma: float = 0.998
 
 	## Polyak averaging coefficient
 	tau: float = 0.004
@@ -68,7 +68,7 @@ class Config:
 	cart_x_threshold: float = 0.95
 	## Maximum episode length, independent of angle. Needed because once the
 	## curriculum avoids angle-based termination, angle alone won't end episodes.
-	max_episode_steps: int = 500
+	max_episode_steps: int = 1200 # Equivalent to 5s at 240Hz
 
 	# Curriculum
 	## How far (deg) from vertical each pole is randomized at reset.
