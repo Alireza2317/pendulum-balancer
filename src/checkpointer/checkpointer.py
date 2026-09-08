@@ -19,15 +19,19 @@ class ModelCheckpointer:
 		self.checkpoint_dir = Path(checkpoint_dir)
 		self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 		self.trainer = trainer
-		self.episode_counter = tf.Variable(0, dtype=tf.uint64)
+		self.episode_counter = tf.Variable(
+			tf.constant(0, dtype=tf.uint64), trainable=False
+		)
 
 		# Persists CurriculumManager.level across process restarts.
-		self.curriculum_level = tf.Variable(0.0, dtype=tf.float32)
+		self.curriculum_level = tf.Variable(
+			tf.constant(0.0, dtype=tf.float32), trainable=False
+		)
 
 		# OU noise sigma since it changes over time
 
 		self.ounoise_sigma = tf.Variable(
-			0 if trainer is None else trainer.noise.sigma, dtype=tf.float32
+			tf.constant(0 if trainer is None else trainer.noise.sigma, dtype=tf.float32)
 		)
 
 		self.writer = tf.summary.create_file_writer(str(self.log_dir))
