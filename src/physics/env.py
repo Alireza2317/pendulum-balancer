@@ -5,7 +5,14 @@ import pybullet as p
 import pybullet_data
 
 from src.config import Config
-from src.physics.angles import abs2rel, denormalize_angle, normalize_angle, rel2abs
+from src.physics.angles import (
+	abs2rel,
+	denormalize_angle,
+	denormalize_angular_velocities,
+	normalize_angle,
+	normalize_angular_velocities,
+	rel2abs,
+)
 from src.physics.state import EnvState
 
 
@@ -75,6 +82,10 @@ class DoublePendulumEnv:
 		angle2_rel: float = pole2_info[0]
 		angle2_abs: float = rel2abs(angle1, angle2_rel)
 
+		pole1_vel_normalized, pole2_vel_normalized = normalize_angular_velocities(
+			pole1_info[1], pole2_info[1]
+		)
+
 		state: EnvState = EnvState(
 			cart_x=cart_info[0],
 			cart_x_velocity=np.clip(
@@ -82,11 +93,15 @@ class DoublePendulumEnv:
 			),
 			pole1_angle=normalize_angle(angle1),
 			pole1_angular_velocity=float(
-				np.clip(pole1_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
+				np.clip(
+					pole1_vel_normalized, -self.cfg.max_velocity, self.cfg.max_velocity
+				)
 			),
 			pole2_angle=normalize_angle(angle2_abs),
 			pole2_angular_velocity=float(
-				np.clip(pole2_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
+				np.clip(
+					pole2_vel_normalized, -self.cfg.max_velocity, self.cfg.max_velocity
+				)
 			),
 		)
 
@@ -108,23 +123,28 @@ class DoublePendulumEnv:
 		)
 
 		angle1_original: float = denormalize_angle(state.pole1_angle)
+		pole1_vel_original, pole2_vel_original = denormalize_angular_velocities(
+			state.pole1_angular_velocity, state.pole2_angular_velocity
+		)
+
 		# Pole 1
 		p.resetJointState(
 			self.cart_id,
 			jointIndex=1,  # Pole 1 index
 			targetValue=angle1_original,
-			targetVelocity=state.pole1_angular_velocity,
+			targetVelocity=pole1_vel_original,
 			physicsClientId=self.client_id,
 		)
 
 		angle2_original: float = denormalize_angle(state.pole2_angle)
 		pole2_angle_relative: float = abs2rel(angle1_original, angle2_original)
+
 		# Pole 2
 		p.resetJointState(
 			self.cart_id,
 			jointIndex=2,  # Pole 2 index
 			targetValue=pole2_angle_relative,
-			targetVelocity=state.pole2_angular_velocity,
+			targetVelocity=pole2_vel_original,
 			physicsClientId=self.client_id,
 		)
 
