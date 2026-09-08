@@ -70,17 +70,18 @@ class CurriculumManager:
 		"""Call once per completed episode with the number of steps it lasted."""
 		fraction = min(1.0, steps_survived / self.cfg.max_episode_steps)
 		self._window.append(fraction)
+		self._episodes_since_advance += 1
 
-		if (
-			len(self._window) == self._window.maxlen
-			and self.success_ratio >= self.current_success_ratio_threshold(self._level)
-			and self._level < 1.0
-		):
-			self._level = min(1.0, self._level + self.cfg.curriculum_step)
-			self._window.clear()
-			self._episodes_since_advance = 0
-		else:
-			self._episodes_since_advance += 1
+		# if (
+		# 	len(self._window) == self._window.maxlen
+		# 	and self.success_ratio >= self.current_success_ratio_threshold(self._level)
+		# 	and self._level < 1.0
+		# ):
+		# 	self._level = min(1.0, self._level + self.cfg.curriculum_step)
+		# 	self._window.clear()
+		# 	self._episodes_since_advance = 0
+		# else:
+			# self._episodes_since_advance += 1
 
 	@staticmethod
 	def _lerp(a: float, b: float, t: float) -> float:

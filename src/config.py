@@ -12,7 +12,7 @@ class Config:
 	# Buffer and training
 	buffer_maxsize: int = 100_000
 	buffer_warmup_size: int = 4_000
-	max_episodes: int = 50_000
+	max_episodes: int = 500
 	batch_size: int = 128
 
 	# Agent hyperparameters
@@ -60,7 +60,8 @@ class Config:
 	alive_bonus: float = 6.5
 
 	### Positive progess reward, for immediate local payoff for angle recovery
-	progress_reward_scale: float = 2.0
+	# progress_reward_scale: float = 2.0
+	progress_reward_scale: float = 0
 	### Clamp on raw (pre-scale) cost delta, in case of pathological single-step swing
 	progress_cost_clip: float = 1.0
 

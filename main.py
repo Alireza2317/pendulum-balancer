@@ -86,7 +86,7 @@ def run():
 
 	env = DoublePendulumEnv(cfg, render=True)
 	try:
-		env.set_difficulty(reset_angle_range_deg=180, angle_threshold_deg=181)
+		env.set_difficulty(reset_angle_range_deg=15, angle_threshold_deg=24)
 		agent = DDPGAgent(cfg)
 		checkpointer = ModelCheckpointer(agent)
 
@@ -115,5 +115,5 @@ def run():
 
 
 if __name__ == "__main__":
-	train(continue_train=True, save_log_process=True)
+	# train(continue_train=True, save_log_process=True)
 	run()
