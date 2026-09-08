@@ -23,6 +23,7 @@ class DoublePendulumEnv:
 		self.cart_id = p.loadURDF(
 			self.cfg.pendulum_urdf_path,
 			useFixedBase=True,
+			flags=p.URDF_USE_INERTIA_FROM_FILE,
 			physicsClientId=self.client_id,
 		)
 		self._disable_motors()
