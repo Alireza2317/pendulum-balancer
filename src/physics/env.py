@@ -15,7 +15,9 @@ class DoublePendulumEnv:
 		self.client_id: int = p.connect(connection_mode)
 		self.cfg = config
 
-		p.setAdditionalSearchPath(pybullet_data.getDataPath())
+		p.setAdditionalSearchPath(
+			pybullet_data.getDataPath(), physicsClientId=self.client_id
+		)
 		p.setGravity(0, 0, self.cfg.gravity, physicsClientId=self.client_id)
 
 		self.cart_id = p.loadURDF(
