@@ -160,7 +160,7 @@ class DoublePendulumEnv:
 		cart_v_cost = 0.15 * (
 			np.clip(
 				state.cart_x_velocity,
-				self.cfg.max_velocity / np.pi,
+				-self.cfg.max_velocity / np.pi,
 				self.cfg.max_velocity / np.pi,
 			)
 			** 2
