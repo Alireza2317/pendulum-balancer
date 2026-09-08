@@ -82,7 +82,7 @@ class DDPGTrainer:
 		critic_losses: list[float] = []
 		episode_avg_q_vals: list[float] = []
 
-		step: int = 0
+		steps_survived: int = 0
 		for step in range(self.cfg.max_episode_steps):
 			if done:
 				break
@@ -108,7 +108,8 @@ class DDPGTrainer:
 					critic_losses.append(float(critic_loss))
 					episode_avg_q_vals.append(float(tf.reduce_mean(q_vals)))
 
-		steps_survived: int = step + 1
+			steps_survived += 1
+
 		self.curriculum.record_episode(steps_survived)
 
 		avg_actor_loss: float = (
