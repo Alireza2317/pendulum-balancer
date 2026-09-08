@@ -49,7 +49,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 				difficulty,
 			) = trainer.run_episode()
 
-			if save_log_process and episode % cfg.log_every_n_episodes == 0:
+			if save_log_process:
 				checkpointer.log_scalar(
 					"Episode Total Reward", episode_reward, step=episode
 				)
@@ -75,6 +75,7 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 					"Exploration Noise Sigma", trainer.noise.sigma, step=episode
 				)
 
+			if episode % cfg.checkpoint_every_n_episodes == 0:
 				checkpointer.save(episode)
 	finally:
 		env.close()

@@ -107,8 +107,8 @@ class Config:
 	## It means the agent acts n times in the simulation per 1 training step.
 	train_every_n_steps: int = 2
 
-	# Logging and checkpointing
-	log_every_n_episodes: int = 20
+	# Checkpointing frequency
+	checkpoint_every_n_episodes: int = 20
 
 	def __post_init__(self) -> None:
 		if self.buffer_warmup_size < self.batch_size:
@@ -117,8 +117,8 @@ class Config:
 			raise ValueError("Buffer maxsize should be >= warmup size!")
 		if self.train_every_n_steps <= 0:
 			raise ValueError("train_every_n_steps must be a positive integer!")
-		if self.log_every_n_episodes <= 0:
-			raise ValueError("log_every_n_episodes must be a positive integer!")
+		if self.checkpoint_every_n_episodes <= 0:
+			raise ValueError("checkpoint_every_n_episodes must be a positive integer!")
 		if self.policy_delay <= 0:
 			raise ValueError("policy_delay must be a positive integer!")
 		if self.batch_size <= 0:
