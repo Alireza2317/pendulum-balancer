@@ -4,6 +4,8 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
+
 
 @dataclass(frozen=True)
 class Config:
@@ -47,7 +49,7 @@ class Config:
 	max_velocity: float = 10
 
 	## Absolute path of the pendulum urdf file
-	pendulum_urdf_path: str = "assets/urdf/pendulum.urdf"
+	pendulum_urdf_path: str = str(PROJECT_ROOT / "assets" / "urdf" / "pendulum.urdf")
 
 	## Rewards
 	terminal_penalty: float = 1.0

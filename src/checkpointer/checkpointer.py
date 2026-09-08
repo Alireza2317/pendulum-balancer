@@ -3,6 +3,7 @@ from pathlib import Path
 import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
+from src.config import PROJECT_ROOT
 from src.trainer.trainer import DDPGTrainer
 
 
@@ -11,8 +12,8 @@ class ModelCheckpointer:
 		self,
 		agent: DDPGAgent,
 		trainer: DDPGTrainer | None = None,
-		log_dir: Path | str = Path("logs"),
-		checkpoint_dir: Path | str = Path("checkpoints"),
+		log_dir: Path | str = PROJECT_ROOT / "logs",
+		checkpoint_dir: Path | str = PROJECT_ROOT / "checkpoints",
 		max_to_keep: int = 10,
 	) -> None:
 		self.log_dir = Path(log_dir)
