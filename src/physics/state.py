@@ -15,7 +15,9 @@ class EnvState:
 	pole2_angle: float
 	pole2_angular_velocity: float
 
-	_cached_array: npt.NDArray[np.float32] = field(init=False, repr=False)
+	_cached_array: npt.NDArray[np.float32] = field(
+		init=False, repr=False, compare=False
+	)
 
 	def __post_init__(self) -> None:
 		object.__setattr__(self, "pole1_angle", wrap_angle(self.pole1_angle))
@@ -41,6 +43,8 @@ class EnvState:
 				dtype=np.float32,
 			),
 		)
+
+		self._cached_array.setflags(write=False)
 
 	def nparray(self) -> npt.NDArray[np.float32]:
 		return self._cached_array
