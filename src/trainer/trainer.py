@@ -1,9 +1,11 @@
+import numpy as np
 import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
 from src.agent.memory import Batch, IBuffer, Transition
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
+from src.physics.state import EnvState
 from src.trainer.curriculum import CurriculumManager, DifficultyParams
 from src.trainer.explore import ExplorationScheduler
 from src.trainer.noise import OUNoise
@@ -44,7 +46,32 @@ class DDPGTrainer:
 			),
 		)
 
-	def run_episode(self) -> tuple[float, float, float, float, float, DifficultyParams]:
+	def _is_balanced(self, state: EnvState) -> bool:
+		pole1_balanced = abs(state.pole1_angle) < np.deg2rad(
+			self.cfg.balance_angle_threshold_deg
+		)
+		pole2_balanced = abs(state.pole2_angle) < np.deg2rad(
+			self.cfg.balance_angle_threshold_deg
+		)
+		pole1_slow = (
+			abs(state.pole1_angular_velocity) < self.cfg.balance_velocity_threshold
+		)
+		pole2_slow = (
+			abs(state.pole2_angular_velocity) < self.cfg.balance_velocity_threshold
+		)
+		cart_centered = abs(state.cart_x) < self.cfg.balance_cart_threshold
+
+		return (
+			pole1_balanced
+			and pole2_balanced
+			and pole1_slow
+			and pole2_slow
+			and cart_centered
+		)
+
+	def run_episode(
+		self,
+	) -> tuple[float, float, float, float, float, float, DifficultyParams]:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -55,7 +82,8 @@ class DDPGTrainer:
 
 		Returns  a tuple containing:
 			- The total reward earned in the episode.
-			- Number of steps survived in the episode.
+			- Number of steps performed in the episode.
+			- Balance fraction (# of balanced steps / # of steps performed).
 			- Average actor loss.
 			- Average critic loss.
 			- Average Q-Values.
@@ -74,6 +102,7 @@ class DDPGTrainer:
 		)
 
 		state = self.env.reset()
+		# print(state)
 
 		done: bool = False
 		total_reward: float = 0
@@ -82,7 +111,8 @@ class DDPGTrainer:
 		critic_losses: list[float] = []
 		episode_avg_q_vals: list[float] = []
 
-		steps_survived: int = 0
+		balanced_steps: int = 0
+		steps_performed: int = 0
 		for step in range(self.cfg.max_episode_steps):
 			if done:
 				break
@@ -93,6 +123,10 @@ class DDPGTrainer:
 			next_state, reward, done, _ = self.env.step(action * self.cfg.max_force)
 
 			total_reward += reward
+
+			# Check balance
+			if self._is_balanced(next_state):
+				balanced_steps += 1
 
 			# Save the transition into the buffer
 			self.buffer.add(Transition(state, action, reward, next_state, done))
@@ -108,9 +142,11 @@ class DDPGTrainer:
 					critic_losses.append(float(critic_loss))
 					episode_avg_q_vals.append(float(tf.reduce_mean(q_vals)))
 
-			steps_survived += 1
+			steps_performed += 1
 
-		self.curriculum.record_episode(steps_survived)
+		self.curriculum.record_episode(steps_performed)
+
+		balanced_fraction: float = balanced_steps / steps_performed
 
 		avg_actor_loss: float = (
 			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
@@ -125,7 +161,8 @@ class DDPGTrainer:
 		)
 		return (
 			total_reward,
-			steps_survived,
+			steps_performed,
+			balanced_fraction,
 			avg_actor_loss,
 			avg_critic_loss,
 			avg_q,

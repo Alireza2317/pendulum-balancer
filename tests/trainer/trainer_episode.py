@@ -52,8 +52,12 @@ class EpisodeBookkeepingTests(unittest.TestCase):
 		trainer.noise = Mock()
 		trainer.noise.sample.return_value = 0.0
 
-		reward, steps, actor_loss, critic_loss, avg_q, _ = trainer.run_episode()
+		reward, steps, balance_fraction, actor_loss, critic_loss, avg_q, _ = (
+			trainer.run_episode()
+		)
 
+		self.assertGreaterEqual(balance_fraction, 0)
+		self.assertLessEqual(balance_fraction, 1)
 		self.assertEqual(steps, expected_steps)
 		self.assertEqual(fake.calls, expected_steps)
 		self.assertEqual(env.step.call_count, expected_steps)

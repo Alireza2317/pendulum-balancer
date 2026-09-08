@@ -140,18 +140,38 @@ class DoublePendulumEnv:
 			physicsClientId=self.client_id,
 		)
 
+	def _generate_random_angles(self) -> tuple[float, float]:
+		"""
+		Generates random angles, considering the advarsarial frequency of extreme cases.
+		Returns two angles (in radians).
+		"""
+		delta_deg: float = self._reset_angle_range_deg
+
+		# Generate extreme cases
+		if np.random.random() < self.cfg.adversarial_reset_prob:
+			magnitude1 = np.random.uniform(0.7 * delta_deg, delta_deg)
+			magnitude2 = np.random.uniform(0.7 * delta_deg, delta_deg)
+
+			sign = np.random.choice((-1.0, 1.0))
+			angle1_random_deg = sign * magnitude1
+			angle2_random_deg = -sign * magnitude2
+		else:
+			# Generate randomly and uniformly
+			angle1_random_deg = np.random.uniform(-delta_deg, delta_deg)
+			angle2_random_deg = np.random.uniform(-delta_deg, delta_deg)
+
+		return np.deg2rad(angle1_random_deg), np.deg2rad(angle2_random_deg)
+
 	def reset(self) -> EnvState:
 		"""Resets the environment randomly and returns the initial state."""
-		DELTA_DEG: float = self._reset_angle_range_deg
 
-		angle1_random_deg = np.random.uniform(-DELTA_DEG, +DELTA_DEG)
-		angle2_random_deg = np.random.uniform(-DELTA_DEG, DELTA_DEG)
+		random_angle1, random_angle2 = self._generate_random_angles()
 
 		random_state: EnvState = EnvState(
 			cart_x=0,
 			cart_x_velocity=0,
-			pole1_angle=np.deg2rad(angle1_random_deg),
-			pole2_angle=np.deg2rad(angle2_random_deg),
+			pole1_angle=random_angle1,
+			pole2_angle=random_angle2,
 			pole1_angular_velocity=0,
 			pole2_angular_velocity=0,
 		)

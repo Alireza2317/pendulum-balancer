@@ -42,7 +42,8 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 
 			(
 				episode_reward,
-				steps_survived,
+				steps_performed,
+				balance_fraction,
 				actor_loss,
 				critic_loss,
 				avg_q,
@@ -54,7 +55,10 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 					"Episode Total Reward", episode_reward, step=episode
 				)
 				checkpointer.log_scalar(
-					"Steps Survived in Each Episode", steps_survived, step=episode
+					"Steps Survived in Each Episode", steps_performed, step=episode
+				)
+				checkpointer.log_scalar(
+					"Balance fraction", balance_fraction, step=episode
 				)
 				checkpointer.log_scalar(
 					"Episode Average Actor Loss", actor_loss, step=episode
@@ -115,5 +119,5 @@ def run():
 
 
 if __name__ == "__main__":
-	# train(continue_train=True, save_log_process=True)
+	train(continue_train=True, save_log_process=True)
 	run()

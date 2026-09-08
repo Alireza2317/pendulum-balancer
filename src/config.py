@@ -69,7 +69,7 @@ class Config:
 	cart_x_threshold: float = 0.95
 	## Maximum episode length, independent of angle. Needed because once the
 	## curriculum avoids angle-based termination, angle alone won't end episodes.
-	max_episode_steps: int = 1200 # Equivalent to 5s at 240Hz
+	max_episode_steps: int = 1200  # Equivalent to 5s at 240Hz
 
 	# Curriculum
 	## How far (deg) from vertical each pole is randomized at reset.
@@ -95,6 +95,11 @@ class Config:
 	## How much curriculum_level (0..1) increases each time the success bar is met.
 	curriculum_step: float = 0.05
 
+	# Balance metrics
+	balance_angle_threshold_deg: float = 5.0
+	balance_velocity_threshold: float = 1.0
+	balance_cart_threshold: float = 0.5
+
 	# Exploration
 	## OU noise parameters
 	ounoise_mu: float = 0.0
@@ -112,6 +117,9 @@ class Config:
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
 	train_every_n_steps: int = 2
+
+	## Probability of starting an episode with an extreme state.
+	adversarial_reset_prob: float = 0.2
 
 	# Checkpointing frequency
 	checkpoint_every_n_episodes: int = 20
@@ -135,6 +143,14 @@ class Config:
 			raise ValueError("curriculum_window must be a positive integer!")
 		if self.dt <= 0:
 			raise ValueError("dt (Physics time step) must be positive!")
+		if self.balance_angle_threshold_deg <= 0:
+			raise ValueError("balance_angle_threshold must be positive!")
+		if self.balance_velocity_threshold <= 0:
+			raise ValueError("balance_velocity_threshold must be positive!")
+		if self.balance_cart_threshold <= 0:
+			raise ValueError("balance_cart_threshold must be positive!")
+		if not (0.0 <= self.adversarial_reset_prob <= 1.0):
+			raise ValueError("adversarial_reset_prob should be in the range [0, 1].")
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)
