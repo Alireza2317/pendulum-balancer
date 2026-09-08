@@ -112,7 +112,23 @@ class Config:
 
 	def __post_init__(self) -> None:
 		if self.buffer_warmup_size < self.batch_size:
-			raise ValueError("Buffer warmup size should be bigger than batch size!")
+			raise ValueError("Buffer warmup size should be >= batch size!")
+		if self.buffer_maxsize < self.buffer_warmup_size:
+			raise ValueError("Buffer maxsize should be >= warmup size!")
+		if self.train_every_n_steps <= 0:
+			raise ValueError("train_every_n_steps must be a positive integer!")
+		if self.log_every_n_episodes <= 0:
+			raise ValueError("log_every_n_episodes must be a positive integer!")
+		if self.policy_delay <= 0:
+			raise ValueError("policy_delay must be a positive integer!")
+		if self.batch_size <= 0:
+			raise ValueError("batch_size must be a positive integer!")
+		if self.max_episode_steps <= 0:
+			raise ValueError("max_episode_steps must be a positive integer!")
+		if self.curriculum_window <= 0:
+			raise ValueError("curriculum_window must be a positive integer!")
+		if self.stagnation_reheat_interval <= 0:
+			raise ValueError("stagnation_reheat_interval must be a positive integer!")
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)
