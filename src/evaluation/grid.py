@@ -1,6 +1,6 @@
 import csv
-import enum
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 import numpy as np
@@ -20,9 +20,9 @@ DEFAULT_RESULTS_DIR = PROJECT_ROOT / "artifacts" / "evaluations"
 SUCCESS_BALANCE_FRACTION = 0.8
 
 
-class EvalMode(enum.Enum):
-	FULL = enum.auto()
-	SENTINEL = enum.auto()
+class EvalMode(Enum):
+	FULL = "full"
+	SENTINEL = "sentinel"
 
 
 @dataclass(frozen=True)
