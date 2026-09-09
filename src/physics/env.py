@@ -282,7 +282,7 @@ class DoublePendulumEnv:
 		reward: float = self._calculate_reward(new_state)
 		done: bool = self._is_done(new_state)
 		info: dict = (
-			{"Reason": "Cart" if self._is_hard_fail(new_state) else "Poles"}
+			{"reason": "cart" if self._is_hard_fail(new_state) else "pole"}
 			if done
 			else {}
 		)
