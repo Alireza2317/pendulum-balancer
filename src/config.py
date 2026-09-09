@@ -119,7 +119,7 @@ class Config:
 	train_every_n_steps: int = 2
 
 	## Probability of starting an episode with an extreme state.
-	adversarial_reset_prob: float = 0.2
+	adversarial_reset_prob: float = 0.0
 
 	# Checkpointing frequency
 	checkpoint_every_n_episodes: int = 20
