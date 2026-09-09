@@ -40,33 +40,29 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 		for episode in range(start_episode, start_episode + cfg.max_episodes):
 			print(f"Running episode {episode:4}...")
 
-			(
-				episode_reward,
-				steps_performed,
-				balance_fraction,
-				actor_loss,
-				critic_loss,
-				avg_q,
-				difficulty,
-			) = trainer.run_episode()
+			episode_result, agent_metric, difficulty = trainer.run_episode()
 
 			if save_log_process:
 				checkpointer.log_scalar(
-					"Episode Total Reward", episode_reward, step=episode
+					"Episode Total Reward", episode_result.total_reward, step=episode
 				)
 				checkpointer.log_scalar(
-					"Steps Survived in Each Episode", steps_performed, step=episode
+					"Steps Survived in Each Episode", episode_result.steps, step=episode
 				)
 				checkpointer.log_scalar(
-					"Balance fraction", balance_fraction, step=episode
+					"Balance fraction", episode_result.balance_fraction, step=episode
 				)
 				checkpointer.log_scalar(
-					"Episode Average Actor Loss", actor_loss, step=episode
+					"Episode Average Actor Loss", agent_metric.actor_loss, step=episode
 				)
 				checkpointer.log_scalar(
-					"Episode Average Critic Loss", critic_loss, step=episode
+					"Episode Average Critic Loss",
+					agent_metric.critic_loss,
+					step=episode,
 				)
-				checkpointer.log_scalar("Episode Average Q-Values", avg_q, step=episode)
+				checkpointer.log_scalar(
+					"Episode Average Q-Values", agent_metric.q_vals_avg, step=episode
+				)
 				checkpointer.log_scalar(
 					"Difficulty Level", difficulty.level, step=episode
 				)
