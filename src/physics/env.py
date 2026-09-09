@@ -162,24 +162,30 @@ class DoublePendulumEnv:
 
 		return np.deg2rad(angle1_random_deg), np.deg2rad(angle2_random_deg)
 
-	def reset(self) -> EnvState:
-		"""Resets the environment randomly and returns the initial state."""
+	def reset(self, initial_state: EnvState | None = None) -> EnvState:
+		"""
+		Resets the environment with the given initial state (or randomly if not given).
+		Returns the initial state.
+		"""
+		if initial_state is None:
+			random_angle1, random_angle2 = self._generate_random_angles()
 
-		random_angle1, random_angle2 = self._generate_random_angles()
+			initial_state = EnvState(
+				cart_x=0,
+				cart_x_velocity=0,
+				pole1_angle=random_angle1,
+				pole2_angle=random_angle2,
+				pole1_angular_velocity=0,
+				pole2_angular_velocity=0,
+			)
 
-		random_state: EnvState = EnvState(
-			cart_x=0,
-			cart_x_velocity=0,
-			pole1_angle=random_angle1,
-			pole2_angle=random_angle2,
-			pole1_angular_velocity=0,
-			pole2_angular_velocity=0,
-		)
+		self._set_state(initial_state)
 
-		self._set_state(random_state)
-		self._prev_cost: float = self._cost(random_state)
+		state = self.get_state()
 
-		return self.get_state()
+		self._prev_cost: float = self._cost(state)
+
+		return state
 
 	def _cost(self, state: EnvState) -> float:
 		"""Combined, bounded cost which is 0 for perfectly upright and centered cart"""
