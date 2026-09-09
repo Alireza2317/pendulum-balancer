@@ -13,3 +13,9 @@ typings/
 
 logs/
 checkpoints/
+
+# temporary experiments
+work/
+
+# experiment results and logs
+artifacts/
