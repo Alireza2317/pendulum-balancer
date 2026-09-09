@@ -1,9 +1,18 @@
+from dataclasses import dataclass
+
 import tensorflow as tf
 import tensorflow.keras as tfk
 
 from src.agent.models import Actor, Critic
 from src.config import Config
 from src.physics.state import EnvState
+
+
+@dataclass(frozen=True)
+class AgentMetrics:
+	actor_loss: float
+	critic_loss: float
+	q_vals: float
 
 
 class DDPGAgent:
