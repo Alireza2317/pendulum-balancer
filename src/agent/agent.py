@@ -30,11 +30,15 @@ class DDPGAgent:
 		)
 
 		# Tracks critic-update count, to gate delayed actor/target updates.
-		self._step_counter = tf.Variable(tf.constant(0), dtype=tf.int64)
+		self._step_counter = tf.Variable(
+			tf.constant(0, dtype=tf.int64), trainable=False
+		)
 		# Reused for logging on steps where the actor doesn't update, so
 		# logged actor loss stays meaningful instead of dropping to a
 		# stale/zero value on skipped steps.
-		self._last_actor_loss = tf.Variable(tf.constant(0.0), dtype=tf.float32)
+		self._last_actor_loss = tf.Variable(
+			tf.constant(0.0, dtype=tf.float32), trainable=False
+		)
 
 	def _build_weights(self) -> None:
 		dummy_state = tf.zeros((1, self.cfg.state_dim))
