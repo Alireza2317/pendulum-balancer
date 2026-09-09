@@ -152,7 +152,7 @@ class DDPGAgent:
 		# Only every `policy_delay` critic updates: gives the critic time to
 		# stabilize before the actor climbs it, and keeps target networks in
 		# sync with that same slower cadence (standard TD3 pairing).
-		if self._step_counter % self.cfg.policy_delay == 0:
+		if int(self._step_counter) % self.cfg.policy_delay == 0:
 			with tf.GradientTape() as tape:
 				# The actor should maximize the critic's reward predictions Q(s, mu(s))
 				actor_actions: tf.Tensor = self.actor(states)
