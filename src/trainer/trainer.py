@@ -70,6 +70,36 @@ class DDPGTrainer:
 			and cart_centered
 		)
 
+	def evaluate_episode(self, initial_state: EnvState | None = None) -> EpisodeResult:
+		state = self.env.reset(initial_state)
+
+		total_reward: float = 0.0
+		steps_performed: int = 0
+		balanced_steps: int = 0
+		failure_reason: str | None = None
+
+		for _ in range(self.cfg.max_episode_steps):
+			steps_performed += 1
+
+			action = self.agent.get_action(state, noise=0.0)
+			state, reward, done, info = self.env.step(action * self.cfg.max_force)
+
+			total_reward += reward
+
+			if self._is_balanced(state):
+				balanced_steps += 1
+
+			if done:
+				failure_reason = info.get("reason")
+				break
+
+		return EpisodeResult(
+			total_reward,
+			steps_performed,
+			balanced_steps / steps_performed,
+			failure_reason,
+		)
+
 	def run_episode(
 		self,
 	) -> tuple[EpisodeResult, AgentMetrics, DifficultyParams]:
