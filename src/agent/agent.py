@@ -18,18 +18,9 @@ class DDPGAgent:
 		self.target_critic2 = Critic()
 
 		# Build initial weights with dummy inputs
-		dummy_state = tf.zeros((1, self.cfg.state_dim))
-		dummy_action = tf.zeros((1, self.cfg.action_dim))
-		self.actor(dummy_state)
-		self.target_actor(dummy_state)
-		self.critic(dummy_state, dummy_action)
-		self.critic2(dummy_state, dummy_action)
-		self.target_critic(dummy_state, dummy_action)
-		self.target_critic2(dummy_state, dummy_action)
+		self._build_weights()
 
-		self.target_actor.set_weights(self.actor.get_weights())
-		self.target_critic.set_weights(self.critic.get_weights())
-		self.target_critic2.set_weights(self.critic2.get_weights())
+		self._sync_target_networks()
 
 		self.actor_optimizer = tfk.optimizers.Adam(
 			learning_rate=self.cfg.actor_lr, clipnorm=1
@@ -39,11 +30,26 @@ class DDPGAgent:
 		)
 
 		# Tracks critic-update count, to gate delayed actor/target updates.
-		self._step_counter = tf.Variable(0, dtype=tf.int64)
+		self._step_counter = tf.Variable(tf.constant(0), dtype=tf.int64)
 		# Reused for logging on steps where the actor doesn't update, so
 		# logged actor loss stays meaningful instead of dropping to a
 		# stale/zero value on skipped steps.
-		self._last_actor_loss = tf.Variable(0.0, dtype=tf.float32)
+		self._last_actor_loss = tf.Variable(tf.constant(0.0), dtype=tf.float32)
+
+	def _build_weights(self) -> None:
+		dummy_state = tf.zeros((1, self.cfg.state_dim))
+		dummy_action = tf.zeros((1, self.cfg.action_dim))
+		self.actor(dummy_state)
+		self.target_actor(dummy_state)
+		self.critic(dummy_state, dummy_action)
+		self.critic2(dummy_state, dummy_action)
+		self.target_critic(dummy_state, dummy_action)
+		self.target_critic2(dummy_state, dummy_action)
+
+	def _sync_target_networks(self) -> None:
+		self.target_actor.set_weights(self.actor.get_weights())
+		self.target_critic.set_weights(self.critic.get_weights())
+		self.target_critic2.set_weights(self.critic2.get_weights())
 
 	def update_target_networks(self) -> None:
 		"""Applies Polyak averaging (theta' = tau * theta + (1-tau) * theta')."""
