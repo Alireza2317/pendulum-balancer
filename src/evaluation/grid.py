@@ -1,3 +1,4 @@
+import argparse
 import csv
 from dataclasses import dataclass
 from enum import Enum
@@ -11,7 +12,7 @@ from src.agent.memory import UniformReplayBuffer
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.physics.state import EnvState
-from src.trainer.curriculum import DifficultyParams
+from src.trainer.curriculum import CurriculumManager, DifficultyParams
 from src.trainer.evaluation import EpisodeResult
 from src.trainer.trainer import DDPGTrainer
 
@@ -206,37 +207,129 @@ def dump_grid_results(
 	return output_path
 
 
-def main():
-	cfg = Config()
-	checkpoint = tf.train.latest_checkpoint(PROJECT_ROOT / "checkpoints")
-	if checkpoint is None:
-		raise FileNotFoundError("No checkpoint found in checkpoints/")
+def curriculum_level_argument(value: str) -> float:
+	"""Parse and validate a curriculum level supplied on the command line."""
+	level = float(value)
 
-	print("Loaded checkpoint!")
+	if not 0.0 <= level <= 1.0:
+		raise argparse.ArgumentTypeError("level must be between 0.0 and 1.0")
+
+	return level
+
+
+def parse_arguments() -> argparse.Namespace:
+	parser = argparse.ArgumentParser(
+		description="Evaluate a saved actor on a deterministic angle grid."
+	)
+
+	parser.add_argument(
+		"--checkpoint",
+		type=Path,
+		default=None,
+		help=(
+			"Checkpoint prefix, such as checkpoints/ckpt-1900. "
+			"If omitted, the latest checkpoint is used."
+		),
+	)
+
+	parser.add_argument(
+		"--mode",
+		choices=[mode.value for mode in EvalMode],
+		default=EvalMode.FULL.value,
+		help="Evaluation case set to run.",
+	)
+
+	parser.add_argument(
+		"--level",
+		type=curriculum_level_argument,
+		default=0.0,
+		help="Curriculum level between 0.0 and 1.0.",
+	)
+
+	parser.add_argument(
+		"--grid-size",
+		type=int,
+		default=5,
+		help="Number of points per angle axis in full-grid mode.",
+	)
+
+	return parser.parse_args()
+
+
+def resolve_checkpoint(
+	checkpoint_argument: Path | None,
+) -> str:
+	"""Resolve an explicit checkpoint or find the latest saved checkpoint."""
+	checkpoint_directory = PROJECT_ROOT / "checkpoints"
+
+	if checkpoint_argument is None:
+		checkpoint = tf.train.latest_checkpoint(str(checkpoint_directory))
+
+		if checkpoint is None:
+			raise FileNotFoundError(f"No checkpoint found in {checkpoint_directory}")
+
+		return checkpoint
+
+	checkpoint_path = checkpoint_argument
+
+	if not checkpoint_path.is_absolute():
+		checkpoint_path = PROJECT_ROOT / checkpoint_path
+
+	checkpoint_index = Path(f"{checkpoint_path}.index")
+
+	if not checkpoint_index.is_file():
+		raise FileNotFoundError(f"Checkpoint does not exist: {checkpoint_path}")
+
+	return str(checkpoint_path)
+
+
+def main():
+	args = parse_arguments()
+	cfg = Config()
+
+	checkpoint = resolve_checkpoint(args.checkpoint)
+	mode = EvalMode(args.mode)
+
+	curriculum = CurriculumManager(cfg)
+	curriculum.set_level(args.level)
+	difficulty = curriculum.current_params()
 
 	agent = DDPGAgent(cfg)
 	tf.train.Checkpoint(actor=agent.actor).restore(checkpoint).expect_partial()
-
-	difficulty: DifficultyParams = DifficultyParams(
-		reset_angle_range_deg=5.0, angle_threshold_deg=15.0, level=0
-	)
 
 	env = DoublePendulumEnv(cfg, render=False)
 	try:
 		trainer = DDPGTrainer(cfg, env, agent, UniformReplayBuffer(1))
 
-		full_result: GridEvaluationResult = evaluate_angle_grid(
-			trainer, difficulty, mode=EvalMode.FULL
+		print(
+			f"Evaluating {Path(checkpoint).name} at "
+			f"level {difficulty.level:g} in {mode.value} mode..."
 		)
 
-		output_path = dump_grid_results(full_result)
+		grid_result = evaluate_angle_grid(
+			trainer=trainer,
+			difficulty=difficulty,
+			mode=mode,
+			grid_size=args.grid_size,
+		)
+
+		checkpoint_name = Path(checkpoint).name
+		output_filename = (
+			f"{checkpoint_name}_level_{difficulty.level:g}_{mode.value}.csv"
+		)
+		output_path = DEFAULT_RESULTS_DIR / output_filename
+
+		dump_grid_results(
+			grid_result,
+			output_path=output_path,
+		)
 
 		print(
-			f"Summary: {full_result.n_successful_cases}/"
-			+ f"{len(full_result.case_results)} successful, "
-			+ f"mean balance={full_result.mean_balance_fraction:.3f}, "
-			+ f"worst balance={full_result.worst_balance_fraction:.3f}, "
-			+ f"mean survival={full_result.mean_survival_fraction:.3f}"
+			f"Summary: {grid_result.n_successful_cases}/"
+			+ f"{len(grid_result.case_results)} successful, "
+			+ f"mean balance={grid_result.mean_balance_fraction:.3f}, "
+			+ f"worst balance={grid_result.worst_balance_fraction:.3f}, "
+			+ f"mean survival={grid_result.mean_survival_fraction:.3f}"
 		)
 		print(f"Saved detailed results to {output_path}")
 	finally:
