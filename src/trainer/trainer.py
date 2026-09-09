@@ -7,6 +7,7 @@ from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.physics.state import EnvState
 from src.trainer.curriculum import CurriculumManager, DifficultyParams
+from src.trainer.evaluation import AgentMetrics, EpisodeResult
 from src.trainer.explore import ExplorationScheduler
 from src.trainer.noise import OUNoise
 
@@ -71,7 +72,7 @@ class DDPGTrainer:
 
 	def run_episode(
 		self,
-	) -> tuple[float, float, float, float, float, float, DifficultyParams]:
+	) -> tuple[EpisodeResult, AgentMetrics, DifficultyParams]:
 		"""
 		Run a loop until the action results in a state that is considered done.
 		In each iteration of the loop:
@@ -81,12 +82,8 @@ class DDPGTrainer:
 			- Updates all 4 networks parameters.
 
 		Returns  a tuple containing:
-			- The total reward earned in the episode.
-			- Number of steps performed in the episode.
-			- Balance fraction (# of balanced steps / # of steps performed).
-			- Average actor loss.
-			- Average critic loss.
-			- Average Q-Values.
+			- An EpisodeResult object containing information of episode.
+			- An AgentMetrics object containing information of the agent metrics.
 			- Curriculum difficulty parameters.
 		"""
 		difficulty: DifficultyParams = self.curriculum.current_params()
@@ -102,9 +99,9 @@ class DDPGTrainer:
 		)
 
 		state = self.env.reset()
-		# print(state)
 
 		done: bool = False
+		failure_reason: str | None = None
 		total_reward: float = 0
 
 		actor_losses: list[float] = []
@@ -120,9 +117,10 @@ class DDPGTrainer:
 			action: float = self.agent.get_action(state, noise=self.noise.sample())
 
 			# Step the environment based on the action
-			next_state, reward, done, _ = self.env.step(action * self.cfg.max_force)
+			next_state, reward, done, info = self.env.step(action * self.cfg.max_force)
 
 			total_reward += reward
+			failure_reason = info.get("reason")
 
 			# Check balance
 			if self._is_balanced(next_state):
@@ -146,25 +144,22 @@ class DDPGTrainer:
 
 		self.curriculum.record_episode(steps_performed)
 
-		balanced_fraction: float = balanced_steps / steps_performed
-
-		avg_actor_loss: float = (
-			sum(actor_losses) / len(actor_losses) if actor_losses else 0.0
-		)
-		avg_critic_loss: float = (
-			sum(critic_losses) / len(critic_losses) if critic_losses else 0.0
-		)
-		avg_q: float = (
-			sum(episode_avg_q_vals) / len(episode_avg_q_vals)
-			if episode_avg_q_vals
-			else 0.0
-		)
-		return (
+		episode_result = EpisodeResult(
 			total_reward,
 			steps_performed,
-			balanced_fraction,
-			avg_actor_loss,
-			avg_critic_loss,
-			avg_q,
-			difficulty,
+			balanced_steps / steps_performed,
+			failure_reason,
 		)
+		agent_metrics = AgentMetrics(
+			actor_loss=sum(actor_losses) / len(actor_losses) if actor_losses else 0.0,
+			critic_loss=(
+				sum(critic_losses) / len(critic_losses) if critic_losses else 0.0
+			),
+			q_vals_avg=(
+				sum(episode_avg_q_vals) / len(episode_avg_q_vals)
+				if episode_avg_q_vals
+				else 0.0
+			),
+		)
+
+		return episode_result, agent_metrics, difficulty
