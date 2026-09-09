@@ -52,20 +52,25 @@ class EpisodeBookkeepingTests(unittest.TestCase):
 		trainer.noise = Mock()
 		trainer.noise.sample.return_value = 0.0
 
-		reward, steps, balance_fraction, actor_loss, critic_loss, avg_q, _ = (
-			trainer.run_episode()
-		)
+		episode_result, agent_metric, _ = trainer.run_episode()
 
-		self.assertGreaterEqual(balance_fraction, 0)
-		self.assertLessEqual(balance_fraction, 1)
-		self.assertEqual(steps, expected_steps)
+		self.assertGreaterEqual(episode_result.balance_fraction, 0)
+		self.assertLessEqual(episode_result.balance_fraction, 1)
+		self.assertEqual(episode_result.steps, expected_steps)
 		self.assertEqual(fake.calls, expected_steps)
 		self.assertEqual(env.step.call_count, expected_steps)
 		self.assertEqual(agent.get_action.call_count, expected_steps)
 		self.assertEqual(len(replay), expected_steps)
-		self.assertEqual(reward, expected_steps)
+		self.assertEqual(episode_result.total_reward, expected_steps)
 		self.assertEqual(trainer.curriculum.success_ratio, expected_steps / 10)
-		self.assertEqual((actor_loss, critic_loss, avg_q), (0.0, 0.0, 0.0))
+		self.assertEqual(
+			(
+				agent_metric.actor_loss,
+				agent_metric.critic_loss,
+				agent_metric.q_vals_avg,
+			),
+			(0.0, 0.0, 0.0),
+		)
 		agent.train_step.assert_not_called()
 		env.reset.assert_called_once()
 
