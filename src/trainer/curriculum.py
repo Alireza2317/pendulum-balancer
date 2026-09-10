@@ -15,28 +15,25 @@ class DifficultyParams:
 
 class CurriculumManager:
 	"""
-	Grows episode difficulty from "balance near vertical" to "recover from a full fall"
-	as the agent's performance improves.
+	Increase environment difficulty as the agent demonstrates reliable control.
 
-	`reset_angle_range_deg` (how far from vertical each pole starts) and
-	`angle_threshold_deg` (the angle at which the episode fails) are increased together,
-	with `angle_threshold_deg` always kept a margin above the reset	range. That margin
-	itself grows over time, so early on the agent mostly just has to hold near vertical,
-	but eventually the margin is large enough that angle alone won't end the episode.
-	At that point the pole can be reset fully hanging down (180 deg) and the only way to
-	get reward is to swing back up and hold it.
+	Each episode is considered successful when it:
+		- reaches the configured maximum number of steps without failing;
+		- remains balanced for at least the configured fraction of its steps.
 
-	Progression is driven by a rolling average of steps-survived-fraction over
-	`cfg.curriculum_window`(e.g. 50) episodes: once that average clears
-	`cfg.curriculum_success_ratio`, the level is bumped by `cfg.curriculum_step`and the
-	window is cleared so the agent must re-prove itself at the new difficulty before
-	advancing further.
+	`success_ratio` is the fraction of successful episodes in the current
+	rolling window. When the window is full and its success ratio reaches the
+	threshold for the current level, the curriculum advances one step.
+
+	As the level increases, both the random reset-angle range and the allowed
+	pole-angle threshold increase. The agent therefore progresses from balancing
+	near vertical toward recovering from increasingly large pole angles.
 	"""
 
 	def __init__(self, cfg: Config) -> None:
 		self.cfg = cfg
 		self._level: float = 0.0
-		self._window: deque[float] = deque(maxlen=cfg.curriculum_window)
+		self._window: deque[bool] = deque(maxlen=cfg.curriculum_window)
 		self._episodes_since_advance: int = 0
 
 	@property
@@ -45,6 +42,7 @@ class CurriculumManager:
 
 	@property
 	def level(self) -> float:
+		"""Current normalized curriculum level in the range [0, 1]."""
 		return self._level
 
 	def set_level(self, level: float) -> None:
@@ -52,36 +50,58 @@ class CurriculumManager:
 		# Clears the rolling window so the agent has to re-prove itself at this level
 		# before advancing further
 		self._window.clear()
+		self._episodes_since_advance = 0
 
 	@property
 	def success_ratio(self) -> float:
+		"""Fraction of successful episodes in the current rolling window."""
+
 		if not self._window:
 			return 0.0
 		return sum(self._window) / len(self._window)
 
 	def current_success_ratio_threshold(self, level: float) -> float:
+		"""
+		Return the window success ratio required to advance from `level`.
+
+		The required ratio gradually decreases as the curriculum becomes harder.
+		"""
 		return self._lerp(
 			self.cfg.curriculum_success_ratio,
 			self.cfg.curriculum_success_ratio_min,
 			level,
 		)
 
-	def record_episode(self, steps_survived: int) -> None:
-		"""Call once per completed episode with the number of steps it lasted."""
-		fraction = min(1.0, steps_survived / self.cfg.max_episode_steps)
-		self._window.append(fraction)
+	def current_balance_fraction_threshold(self, level: float) -> float:
+		return self.cfg.curriculum_episode_balance_threshold
+
+	def record_episode(
+		self, steps_performed: int, balance_fraction: float, failed: bool
+	) -> None:
+		"""
+		Call once per completed episode with:
+			- Number of steps performed in the episode.
+			- Balance fraction (# of balanced steps / # of performed steps).
+			- If the episode failed or not.
+		"""
+
+		episode_succeeded: bool = (
+			not failed
+			and steps_performed == self.cfg.max_episode_steps
+			and balance_fraction >= self.current_balance_fraction_threshold(self.level)
+		)
+
+		self._window.append(episode_succeeded)
 		self._episodes_since_advance += 1
 
-		# if (
-		# 	len(self._window) == self._window.maxlen
-		# 	and self.success_ratio >= self.current_success_ratio_threshold(self._level)
-		# 	and self._level < 1.0
-		# ):
-		# 	self._level = min(1.0, self._level + self.cfg.curriculum_step)
-		# 	self._window.clear()
-		# 	self._episodes_since_advance = 0
-		# else:
-			# self._episodes_since_advance += 1
+		if (
+			len(self._window) == self._window.maxlen
+			and self.success_ratio >= self.current_success_ratio_threshold(self._level)
+			and self._level < 1.0
+		):
+			self._level = min(1.0, self._level + self.cfg.curriculum_step)
+			self._window.clear()
+			self._episodes_since_advance = 0
 
 	@staticmethod
 	def _lerp(a: float, b: float, t: float) -> float:

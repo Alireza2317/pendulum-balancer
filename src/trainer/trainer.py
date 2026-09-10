@@ -138,7 +138,7 @@ class DDPGTrainer:
 		critic_losses: list[float] = []
 		episode_avg_q_vals: list[float] = []
 
-		balanced_steps: int = 0
+		steps_balanced: int = 0
 		steps_performed: int = 0
 		for step in range(self.cfg.max_episode_steps):
 			if done:
@@ -154,7 +154,7 @@ class DDPGTrainer:
 
 			# Check balance
 			if self._is_balanced(next_state):
-				balanced_steps += 1
+				steps_balanced += 1
 
 			# Save the transition into the buffer
 			self.buffer.add(Transition(state, action, reward, next_state, done))
@@ -172,12 +172,14 @@ class DDPGTrainer:
 
 			steps_performed += 1
 
-		self.curriculum.record_episode(steps_performed)
+		balance_fraction: float = steps_balanced / steps_performed
+
+		self.curriculum.record_episode(steps_performed, balance_fraction, failed=done)
 
 		episode_result = EpisodeResult(
 			total_reward,
 			steps_performed,
-			balanced_steps / steps_performed,
+			balance_fraction,
 			failure_reason,
 		)
 		agent_metrics = AgentMetrics(

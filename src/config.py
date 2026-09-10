@@ -87,10 +87,12 @@ class Config:
 	## the current difficulty level.
 	curriculum_window: int = 40
 
-	## Fraction of max_episode_steps the agent must survive on average, over the
-	## window, before curriculum difficulty is increased.
+	## Fraction of episodes in the rolling window that must complete successfully
+	## before the curriculum advances.
 	curriculum_success_ratio: float = 0.7
 	curriculum_success_ratio_min: float = 0.4
+
+	curriculum_episode_balance_threshold: float = 0.7
 
 	## How much curriculum_level (0..1) increases each time the success bar is met.
 	curriculum_step: float = 0.05
@@ -151,6 +153,8 @@ class Config:
 			raise ValueError("balance_cart_threshold must be positive!")
 		if not (0.0 <= self.adversarial_reset_prob <= 1.0):
 			raise ValueError("adversarial_reset_prob should be in the range [0, 1].")
+		if not 0.0 <= self.curriculum_episode_balance_threshold <= 1.0:
+			raise ValueError("curriculum_episode_balance_threshold must be in [0, 1].")
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)
