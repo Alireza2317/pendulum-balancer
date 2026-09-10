@@ -29,6 +29,13 @@ class DDPGAgent:
 			learning_rate=self.cfg.critic_lr, clipnorm=1
 		)
 
+		self.actor_optimizer.build(self.actor.trainable_variables)
+
+		critic_variables = (
+			self.critic.trainable_variables + self.critic2.trainable_variables
+		)
+		self.critic_optimizer.build(critic_variables)
+
 		# Tracks critic-update count, to gate delayed actor/target updates.
 		self._step_counter = tf.Variable(
 			tf.constant(0, dtype=tf.int64), trainable=False
