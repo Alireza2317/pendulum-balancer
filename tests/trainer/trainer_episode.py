@@ -62,7 +62,12 @@ class EpisodeBookkeepingTests(unittest.TestCase):
 		self.assertEqual(agent.get_action.call_count, expected_steps)
 		self.assertEqual(len(replay), expected_steps)
 		self.assertEqual(episode_result.total_reward, expected_steps)
-		self.assertEqual(trainer.curriculum.success_ratio, expected_steps / 10)
+
+		expected_success_ratio = 0.0 if fail_at is not None else 1.0
+		self.assertEqual(
+			trainer.curriculum.success_ratio,
+			expected_success_ratio,
+		)
 		self.assertEqual(
 			(
 				agent_metric.actor_loss,
