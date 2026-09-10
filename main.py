@@ -12,7 +12,7 @@ import tensorflow as tf
 from src.agent.agent import DDPGAgent
 from src.agent.memory import UniformReplayBuffer
 from src.checkpointer.checkpointer import ModelCheckpointer
-from src.config import Config
+from src.config import PROJECT_ROOT, Config
 from src.physics.env import DoublePendulumEnv
 from src.trainer.trainer import DDPGTrainer
 
@@ -32,8 +32,14 @@ def train(continue_train: bool = True, save_log_process: bool = True):
 		checkpointer = ModelCheckpointer(agent, trainer)
 
 		if continue_train:
-			checkpointer.load_latest()
-			start_episode: int = int(checkpointer.episode_counter) + 1
+			# checkpointer.load_latest()
+			checkpointer.load_checkpoint(
+				PROJECT_ROOT / "checkpoints" / "ckpt-1980", load_sidefiles=False
+			)
+			trainer.buffer.load(PROJECT_ROOT / "checkpoints" / "buffer_2000.pkl")
+			trainer.curriculum.set_level(0)
+			# start_episode: int = int(checkpointer.episode_counter) + 1
+			start_episode: int = 2001
 		else:
 			start_episode = 1
 

@@ -12,7 +12,7 @@ class Config:
 	# Buffer and training
 	buffer_maxsize: int = 100_000
 	buffer_warmup_size: int = 4_000
-	max_episodes: int = 500
+	max_episodes: int = 100
 	batch_size: int = 128
 
 	# Agent hyperparameters
