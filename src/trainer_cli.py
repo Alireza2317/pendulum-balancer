@@ -23,6 +23,11 @@ def parse_arguments() -> argparse.Namespace:
 	parser.add_argument("--resume", type=Path, default=None)
 	parser.add_argument("--episodes", type=int, required=True)
 	parser.add_argument("--run-name", required=True)
+	parser.add_argument(
+		"--reset-replay-buffer",
+		action="store_true",
+		help="Clear restored replay data after loading a checkpoint.",
+	)
 
 	return parser.parse_args()
 
@@ -159,6 +164,9 @@ def main() -> None:
 			source_checkpoint = resolve_checkpoint(args.resume)
 			checkpointer.load_checkpoint(source_checkpoint)
 			start_episode = int(checkpointer.episode_counter) + 1
+
+			if args.reset_replay_buffer:
+				trainer.buffer.clear()
 
 		actual_actor_lr = float(agent.actor_optimizer.learning_rate.numpy())
 		actual_critic_lr = float(agent.critic_optimizer.learning_rate.numpy())

@@ -32,7 +32,7 @@ class Config:
 	noise_clip: float = 0.5  # clip range for that smoothing noise
 
 	# Physics and environment
-	max_force: float = 30.0
+	max_force: float = 60.0
 
 	# Time step
 	dt: float = 1.0 / 240.0
@@ -131,7 +131,7 @@ class Config:
 	train_every_n_steps: int = 4
 
 	# Reset schedule
-	targeted_reset_cycle: int = 20
+	targeted_reset_cycle: int = 4
 	targeted_reset_count: int = 2
 
 	# Checkpointing frequency
