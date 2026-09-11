@@ -1,0 +1,7 @@
+{
+    "run_name": "symmetry-from-2540",
+    "source_checkpoint": "runs/actor-lr-2e-7-long-from-2525/best/ckpt-2540",
+    "git_commit": "a21e86439fe508ffba91985a49281b220b20ad92",
+    "episodes_requested": 20,
+    "random_seed": 23
+}
