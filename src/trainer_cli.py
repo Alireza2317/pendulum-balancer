@@ -180,6 +180,7 @@ def main() -> None:
 		best_score = load_best_score(best_directory)
 		last_gate_episode: int | None = None
 		end_episode = start_episode + args.episodes - 1
+		consecutive_regressions = 0
 
 		for episode in range(start_episode, end_episode + 1):
 			print(f"Episode {episode}, level={trainer.curriculum.level:g}")
@@ -312,8 +313,12 @@ def main() -> None:
 
 			if should_save:
 				checkpoint_path = checkpointer.save(episode)
-
 			if gate is not None and checkpoint_path is not None:
+				if gate.regression_detected:
+					consecutive_regressions += 1
+				else:
+					consecutive_regressions = 0
+
 				if not gate.regression_detected:
 					if best_score is None or gate.score > best_score:
 						best_score = gate.score
@@ -338,9 +343,21 @@ def main() -> None:
 
 						print(f"Promoted checkpoint {episode} as best")
 
-				if gate.regression_detected:
-					print("Training stopped: base-level regression was detected.")
+				if consecutive_regressions >= config.regression_patience:
+					print(
+						"Training stopped after "
+						f"{consecutive_regressions} consecutive "
+						"base-level regression evaluations."
+					)
 					break
+
+				if gate.regression_detected:
+					print(
+						"Regression warning "
+						f"({consecutive_regressions}/"
+						f"{config.regression_patience}); "
+						"the protected best checkpoint is unchanged."
+					)
 
 	finally:
 		env.close()

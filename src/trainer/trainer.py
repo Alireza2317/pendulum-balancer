@@ -58,14 +58,22 @@ class DDPGTrainer:
 	def _reset_mode(self, episode_number: int) -> ResetMode:
 		cycle = self.cfg.targeted_reset_cycle
 		targeted = self.cfg.targeted_reset_count
-		position = (episode_number - 1) % cycle
 
-		if targeted < 1 or position < cycle - targeted:
+		if targeted == 0:
 			return ResetMode.UNIFORM
 
-		targeted_position = position - (cycle - targeted)
+		position = (episode_number - 1) % cycle
+		spacing = cycle // targeted
 
-		if targeted_position % 2 == 0:
+		# Targeted episodes occur evenly throughout the cycle.
+		if (position + 1) % spacing != 0:
+			return ResetMode.UNIFORM
+
+		targeted_index = (position + 1) // spacing - 1
+		cycle_index = (episode_number - 1) // cycle
+		global_targeted_index = cycle_index * targeted + targeted_index
+
+		if global_targeted_index % 2 == 0:
 			return ResetMode.OPPOSING_POSITIVE_FIRST
 
 		return ResetMode.OPPOSING_NEGATIVE_FIRST

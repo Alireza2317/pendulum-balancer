@@ -105,6 +105,7 @@ class Config:
 	## Regression stopping
 	regression_base_min_successes: int = 4
 	regression_base_min_survival: float = 0.95
+	regression_patience: int = 2
 
 	# Balance metrics
 	balance_angle_threshold_deg: float = 5.0
@@ -130,14 +131,14 @@ class Config:
 	train_every_n_steps: int = 4
 
 	# Reset schedule
-	targeted_reset_cycle: int = 10
+	targeted_reset_cycle: int = 20
 	targeted_reset_count: int = 2
 
 	# Checkpointing frequency
 	checkpoint_every_n_episodes: int = 5
 
 	# Evaluation
-	evaluate_every_n_episodes: int = 20
+	evaluate_every_n_episodes: int = 5
 	evaluate_gate_retry_episodes: int = 10
 
 	# Reproducibility
@@ -180,10 +181,22 @@ class Config:
 			)
 		if self.targeted_reset_cycle <= 0:
 			raise ValueError("targeted_reset_cycle must be positive!")
+
 		if not 0 <= self.targeted_reset_count <= self.targeted_reset_cycle:
 			raise ValueError(
 				"targeted_reset_count must be between 0 and targeted_reset_cycle"
 			)
+
+		if (
+			self.targeted_reset_count > 0
+			and self.targeted_reset_cycle % self.targeted_reset_count != 0
+		):
+			raise ValueError(
+				"targeted_reset_cycle must be divisible by targeted_reset_count"
+			)
+
+		if self.regression_patience <= 0:
+			raise ValueError("regression_patience must be positive!")
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)
