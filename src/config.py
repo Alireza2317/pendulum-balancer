@@ -17,7 +17,7 @@ class Config:
 
 	# Agent hyperparameters
 	## Learning rates
-	actor_lr: float = 2e-6
+	actor_lr: float = 2e-7
 	critic_lr: float = 1e-4
 
 	## Discount factor
@@ -80,7 +80,7 @@ class Config:
 	## At curriculum_level=0: near-vertical reset, tight threshold (pure balance).
 	## At curriculum_level=1: reset from fully hanging (180 deg), threshold effectively
 	## disabled (>180 deg, i.e. angle can never trigger it)
-	curriculum_margin_start_deg: float = 10.0
+	curriculum_margin_start_deg: float = 12.0
 	curriculum_margin_end_deg: float = 181.0
 
 	## Rolling window (in episodes) used to judge whether the agent has mastered
@@ -181,11 +181,6 @@ class Config:
 			)
 		if self.targeted_reset_cycle <= 0:
 			raise ValueError("targeted_reset_cycle must be positive!")
-
-		if not 0 <= self.targeted_reset_count <= self.targeted_reset_cycle:
-			raise ValueError(
-				"targeted_reset_count must be between 0 and targeted_reset_cycle"
-			)
 
 		if (
 			self.targeted_reset_count > 0

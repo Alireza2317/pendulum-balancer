@@ -87,7 +87,7 @@ def is_successful(result: EpisodeResult, max_steps: int) -> bool:
 	return (
 		result.steps == max_steps
 		and result.failure_reason is None
-		and result.balance_fraction >= 0.8
+		and result.balance_fraction >= SUCCESS_BALANCE_FRACTION
 	)
 
 
