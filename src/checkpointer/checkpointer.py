@@ -1,3 +1,5 @@
+import json
+import shutil
 from pathlib import Path
 
 import tensorflow as tf
@@ -20,6 +22,7 @@ class ModelCheckpointer:
 		self.checkpoint_dir = Path(checkpoint_dir)
 		self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 		self.trainer = trainer
+		self.agent = agent
 		self.episode_counter = tf.Variable(
 			tf.constant(0, dtype=tf.uint64), trainable=False
 		)
@@ -77,11 +80,11 @@ class ModelCheckpointer:
 			window_temporary.unlink(missing_ok=True)
 			buffer_temporary.unlink(missing_ok=True)
 
-	def _load_sidefiles(self, step: int) -> None:
+	def _load_sidefiles(self, step: int, directory: Path) -> None:
 		if self.trainer is None:
 			return
 
-		window_path, buffer_path = self._sidefile_paths(step)
+		window_path, buffer_path = self._sidefile_paths(step, directory)
 
 		if not window_path.is_file():
 			raise FileNotFoundError(
@@ -150,10 +153,13 @@ class ModelCheckpointer:
 
 		return checkpoint_path
 
-	def _sidefile_paths(self, step: int) -> tuple[Path, Path]:
+	def _sidefile_paths(
+		self, step: int, directory: Path | None = None
+	) -> tuple[Path, Path]:
+		directory = directory if directory is not None else self.checkpoint_dir
 		return (
-			self.checkpoint_dir / f"window_{step}.pkl",
-			self.checkpoint_dir / f"buffer_{step}.pkl",
+			directory / f"window_{step}.pkl",
+			directory / f"buffer_{step}.pkl",
 		)
 
 	def load_checkpoint(
@@ -168,7 +174,12 @@ class ModelCheckpointer:
 		if not checkpoint_index.is_file():
 			raise FileNotFoundError(f"Checkpoint does not exist: {checkpoint_path}")
 
-		self.checkpoint.restore(str(checkpoint_path))
+		restore_status = self.checkpoint.restore(str(checkpoint_path))
+		restore_status.assert_consumed()
+
+		# Apply the learning rates from the active configuration.
+		self.agent.actor_optimizer.learning_rate.assign(self.agent.cfg.actor_lr)
+		self.agent.critic_optimizer.learning_rate.assign(self.agent.cfg.critic_lr)
 
 		if self.trainer is None:
 			return
@@ -178,7 +189,7 @@ class ModelCheckpointer:
 
 		if load_sidefiles:
 			step = int(self.episode_counter)
-			self._load_sidefiles(step)
+			self._load_sidefiles(step, checkpoint_path.parent)
 
 	def load_latest(self) -> bool:
 		checkpoint_path = self.manager.latest_checkpoint
@@ -187,6 +198,52 @@ class ModelCheckpointer:
 		self.load_checkpoint(checkpoint_path, load_sidefiles=self.trainer is not None)
 
 		return True
+
+	def promote_to_best(
+		self,
+		checkpoint_path: Path | str,
+		best_directory: Path | str,
+		score: tuple,
+		metadata: dict,
+	) -> None:
+		"""Copy a synchronized checkpoint set into a protected best directory."""
+		checkpoint_path = Path(checkpoint_path)
+		best_directory = Path(best_directory)
+		best_directory.mkdir(parents=True, exist_ok=True)
+
+		step: int = self._checkpoint_step(str(checkpoint_path))
+
+		# Replace the previous promoted checkpoint.
+		for old_file in best_directory.iterdir():
+			if old_file.is_file():
+				old_file.unlink()
+
+		checkpoint_files = [
+			Path(f"{checkpoint_path}.index"),
+			*checkpoint_path.parent.glob(f"{checkpoint_path.name}.data-*"),
+		]
+
+		window_path, buffer_path = self._sidefile_paths(
+			step,
+			checkpoint_path.parent,
+		)
+		checkpoint_files.extend((window_path, buffer_path))
+
+		for source in checkpoint_files:
+			if not source.is_file():
+				raise FileNotFoundError(
+					f"Cannot promote incomplete checkpoint: {source}"
+				)
+
+			shutil.copy2(source, best_directory / source.name)
+
+		best_metadata = {
+			**metadata,
+			"checkpoint": checkpoint_path.name,
+			"score": list(score),
+		}
+
+		(best_directory / "best.json").write_text(json.dumps(best_metadata, indent=4))
 
 	def log_scalar(self, name: str, value: float, step: int) -> None:
 		with self.writer.as_default():

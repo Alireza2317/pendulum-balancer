@@ -142,25 +142,15 @@ class DoublePendulumEnv:
 
 	def _generate_random_angles(self) -> tuple[float, float]:
 		"""
-		Generates random angles, considering the advarsarial frequency of extreme cases.
-		Returns two angles (in radians).
+		Generate two pole angles uniformly within the configured reset range.
+		Returns the two absolute pole angles in radians.
 		"""
 		delta_deg: float = self._reset_angle_range_deg
 
-		# Generate extreme cases
-		if np.random.random() < self.cfg.adversarial_reset_prob:
-			magnitude1 = np.random.uniform(0.7 * delta_deg, delta_deg)
-			magnitude2 = np.random.uniform(0.7 * delta_deg, delta_deg)
+		pole1_angle_deg = np.random.uniform(-delta_deg, delta_deg)
+		pole2_angle_deg = np.random.uniform(-delta_deg, delta_deg)
 
-			sign = np.random.choice((-1.0, 1.0))
-			angle1_random_deg = sign * magnitude1
-			angle2_random_deg = -sign * magnitude2
-		else:
-			# Generate randomly and uniformly
-			angle1_random_deg = np.random.uniform(-delta_deg, delta_deg)
-			angle2_random_deg = np.random.uniform(-delta_deg, delta_deg)
-
-		return np.deg2rad(angle1_random_deg), np.deg2rad(angle2_random_deg)
+		return (float(np.deg2rad(pole1_angle_deg)), float(np.deg2rad(pole2_angle_deg)))
 
 	def reset(self, initial_state: EnvState | None = None) -> EnvState:
 		"""

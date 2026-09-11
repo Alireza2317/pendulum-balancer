@@ -1,3 +1,7 @@
+import random
+from dataclasses import dataclass
+from enum import Enum
+
 import numpy as np
 import tensorflow as tf
 
@@ -10,6 +14,19 @@ from src.trainer.curriculum import CurriculumManager, DifficultyParams
 from src.trainer.evaluation import AgentMetrics, EpisodeResult
 from src.trainer.explore import ExplorationScheduler
 from src.trainer.noise import OUNoise
+
+
+class ResetMode(Enum):
+	UNIFORM = "uniform"
+	OPPOSING_POSITIVE_FIRST = "opposing_positive_first"
+	OPPOSING_NEGATIVE_FIRST = "opposing_negative_first"
+
+
+@dataclass(frozen=True)
+class ResetInfo:
+	mode: ResetMode
+	pole1_angle_deg: float
+	pole2_angle_deg: float
 
 
 class DDPGTrainer:
@@ -27,6 +44,57 @@ class DDPGTrainer:
 		self.buffer: IBuffer = replay_buffer
 		self.curriculum: CurriculumManager = CurriculumManager(self.cfg)
 		self.exploration_scheduler = ExplorationScheduler(self.cfg, self.noise)
+		self.last_reset_info: ResetInfo | None = None
+
+	def _seed_episode(self, episode_number: int) -> None:
+		"""Make an episode reproducible independently of process restarts."""
+
+		episode_seed = self.cfg.seed + episode_number
+
+		random.seed(episode_seed)
+		np.random.seed(episode_seed)
+		tf.random.set_seed(episode_seed)
+
+	def _reset_mode(self, episode_number: int) -> ResetMode:
+		cycle = self.cfg.targeted_reset_cycle
+		targeted = self.cfg.targeted_reset_count
+		position = (episode_number - 1) % cycle
+
+		if targeted < 1 or position < cycle - targeted:
+			return ResetMode.UNIFORM
+
+		targeted_position = position - (cycle - targeted)
+
+		if targeted_position % 2 == 0:
+			return ResetMode.OPPOSING_POSITIVE_FIRST
+
+		return ResetMode.OPPOSING_NEGATIVE_FIRST
+
+	def _generate_initial_state(
+		self, difficulty: DifficultyParams, mode: ResetMode
+	) -> EnvState:
+		angle_range = difficulty.reset_angle_range_deg
+
+		if mode == ResetMode.UNIFORM:
+			pole1_deg = np.random.uniform(-angle_range, angle_range)
+			pole2_deg = np.random.uniform(-angle_range, angle_range)
+		else:
+			magnitude1 = np.random.uniform(0.7 * angle_range, angle_range)
+			magnitude2 = np.random.uniform(0.7 * angle_range, angle_range)
+
+			if mode == ResetMode.OPPOSING_POSITIVE_FIRST:
+				pole1_deg, pole2_deg = magnitude1, -magnitude2
+			else:
+				pole1_deg, pole2_deg = -magnitude1, magnitude2
+
+		return EnvState(
+			pole1_angle=float(np.deg2rad(pole1_deg)),
+			pole2_angle=float(np.deg2rad(pole2_deg)),
+			cart_x=0.0,
+			cart_x_velocity=0.0,
+			pole1_angular_velocity=0.0,
+			pole2_angular_velocity=0.0,
+		)
 
 	def update_networks(self) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor] | None:
 		if len(self.buffer) < self.cfg.buffer_warmup_size:
@@ -102,6 +170,7 @@ class DDPGTrainer:
 
 	def run_episode(
 		self,
+		episode_number: int | None = None,
 	) -> tuple[EpisodeResult, AgentMetrics, DifficultyParams]:
 		"""
 		Run a loop until the action results in a state that is considered done.
@@ -128,7 +197,20 @@ class DDPGTrainer:
 			self.curriculum.episodes_since_advance,
 		)
 
-		state = self.env.reset()
+		if episode_number is None:
+			state = self.env.reset()
+			reset_mode = ResetMode.UNIFORM
+		else:
+			self._seed_episode(episode_number)
+			reset_mode = self._reset_mode(episode_number)
+			initial_state = self._generate_initial_state(difficulty, reset_mode)
+			state = self.env.reset(initial_state)
+
+		self.last_reset_info = ResetInfo(
+			mode=reset_mode,
+			pole1_angle_deg=float(np.rad2deg(state.pole1_angle)),
+			pole2_angle_deg=float(np.rad2deg(state.pole2_angle)),
+		)
 
 		done: bool = False
 		failure_reason: str | None = None

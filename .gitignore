@@ -19,3 +19,8 @@ work/
 
 # experiment results and logs
 artifacts/
+
+runs/*/checkpoints/
+runs/*/evaluations/
+runs/*/best/
+runs/*/logs/

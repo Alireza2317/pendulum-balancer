@@ -12,13 +12,13 @@ class Config:
 	# Buffer and training
 	buffer_maxsize: int = 100_000
 	buffer_warmup_size: int = 4_000
-	max_episodes: int = 100
+	max_episodes: int = 30
 	batch_size: int = 128
 
 	# Agent hyperparameters
 	## Learning rates
-	actor_lr: float = 1e-4
-	critic_lr: float = 5e-4
+	actor_lr: float = 2e-6
+	critic_lr: float = 1e-4
 
 	## Discount factor
 	gamma: float = 0.998
@@ -95,7 +95,16 @@ class Config:
 	curriculum_episode_balance_threshold: float = 0.7
 
 	## How much curriculum_level (0..1) increases each time the success bar is met.
-	curriculum_step: float = 0.05
+	curriculum_step: float = 0.005
+
+	## Level advancement requirements
+	advancement_base_successes: int = 5
+	advancement_current_successes: int = 4
+	advancement_current_survival_rate: float = 0.9
+
+	## Regression stopping
+	regression_base_min_successes: int = 4
+	regression_base_min_survival: float = 0.95
 
 	# Balance metrics
 	balance_angle_threshold_deg: float = 5.0
@@ -118,13 +127,21 @@ class Config:
 
 	## Number of environment steps taken before triggering a network update
 	## It means the agent acts n times in the simulation per 1 training step.
-	train_every_n_steps: int = 2
+	train_every_n_steps: int = 4
 
-	## Probability of starting an episode with an extreme state.
-	adversarial_reset_prob: float = 0.0
+	# Reset schedule
+	targeted_reset_cycle: int = 10
+	targeted_reset_count: int = 2
 
 	# Checkpointing frequency
-	checkpoint_every_n_episodes: int = 20
+	checkpoint_every_n_episodes: int = 5
+
+	# Evaluation
+	evaluate_every_n_episodes: int = 20
+	evaluate_gate_retry_episodes: int = 10
+
+	# Reproducibility
+	seed: int = 23
 
 	def __post_init__(self) -> None:
 		if self.buffer_warmup_size < self.batch_size:
@@ -151,10 +168,22 @@ class Config:
 			raise ValueError("balance_velocity_threshold must be positive!")
 		if self.balance_cart_threshold <= 0:
 			raise ValueError("balance_cart_threshold must be positive!")
-		if not (0.0 <= self.adversarial_reset_prob <= 1.0):
-			raise ValueError("adversarial_reset_prob should be in the range [0, 1].")
 		if not 0.0 <= self.curriculum_episode_balance_threshold <= 1.0:
 			raise ValueError("curriculum_episode_balance_threshold must be in [0, 1].")
+		if self.evaluate_every_n_episodes <= 0:
+			raise ValueError("evaluation_every_n_episodes must be positive!")
+		if self.evaluate_gate_retry_episodes <= 0:
+			raise ValueError("evaluation_gate_retry_episodes must be positive!")
+		if not 0 <= self.targeted_reset_count <= self.targeted_reset_cycle:
+			raise ValueError(
+				"targeted_reset_count must be between 0 and targeted_reset_cycle"
+			)
+		if self.targeted_reset_cycle <= 0:
+			raise ValueError("targeted_reset_cycle must be positive!")
+		if not 0 <= self.targeted_reset_count <= self.targeted_reset_cycle:
+			raise ValueError(
+				"targeted_reset_count must be between 0 and targeted_reset_cycle"
+			)
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)

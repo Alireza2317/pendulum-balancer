@@ -92,16 +92,24 @@ class CurriculumManager:
 		)
 
 		self._window.append(episode_succeeded)
+
 		self._episodes_since_advance += 1
 
-		if (
-			len(self._window) == self._window.maxlen
+	@property
+	def ready_to_advance(self) -> bool:
+		return (
+			self.level < 1.0
+			and len(self._window) == self._window.maxlen
 			and self.success_ratio >= self.current_success_ratio_threshold(self._level)
-			and self._level < 1.0
-		):
-			self._level = min(1.0, self._level + self.cfg.curriculum_step)
-			self._window.clear()
-			self._episodes_since_advance = 0
+		)
+
+	def advance(self) -> None:
+		if self.level >= 1.0:
+			return
+
+		self._level = min(1.0, self._level + self.cfg.curriculum_step)
+		self._window.clear()
+		self._episodes_since_advance = 0
 
 	@staticmethod
 	def _lerp(a: float, b: float, t: float) -> float:
@@ -129,9 +137,23 @@ class CurriculumManager:
 		)
 
 	def save(self, filepath: Path | str) -> None:
+		state = {
+			"window": self._window,
+			"episodes_since_advance": self.episodes_since_advance,
+		}
+
 		with open(filepath, "wb") as f:
-			pickle.dump(self._window, f, protocol=pickle.HIGHEST_PROTOCOL)
+			pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 	def load(self, filepath: Path | str) -> None:
 		with open(filepath, "rb") as f:
-			self._window = pickle.load(f)
+			state = pickle.load(f)
+
+		# Backward compatibility
+		if isinstance(state, deque):
+			self._window = state
+			self._episodes_since_advance = len(self._window)
+			return
+
+		self._window = state["window"]
+		self._episodes_since_advance = state["episodes_since_advance"]
