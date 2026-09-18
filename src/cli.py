@@ -16,7 +16,7 @@ def main(argv: list[str] | None = None) -> None:
 	parser = argparse.ArgumentParser(description="Train or run the pendulum agent.")
 	commands = parser.add_subparsers(dest="command", required=True)
 
-	train_parser = commands.add_parser("train", help="Train with automated evaluation.")
+	train_parser = commands.add_parser("train", help="Train the pendulum agent.")
 	train_parser.add_argument("--episodes", type=positive_int, required=True)
 	train_parser.add_argument("--run-name", required=True)
 	train_parser.add_argument("--resume", type=Path, default=None)

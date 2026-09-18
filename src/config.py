@@ -97,16 +97,6 @@ class Config:
 	## How much curriculum_level (0..1) increases each time the success bar is met.
 	curriculum_step: float = 0.005
 
-	## Level advancement requirements
-	advancement_base_successes: int = 5
-	advancement_current_successes: int = 4
-	advancement_current_survival_rate: float = 0.9
-
-	## Regression stopping
-	regression_base_min_successes: int = 4
-	regression_base_min_survival: float = 0.95
-	regression_patience: int = 2
-
 	# Balance metrics
 	balance_angle_threshold_deg: float = 5.0
 	balance_velocity_threshold: float = 1.0
@@ -137,9 +127,8 @@ class Config:
 	# Checkpointing frequency
 	checkpoint_every_n_episodes: int = 5
 
-	# Evaluation
+	# Run the reporting evaluation every N training episodes.
 	evaluate_every_n_episodes: int = 5
-	evaluate_gate_retry_episodes: int = 10
 
 	# Reproducibility
 	seed: int = 23
@@ -153,6 +142,8 @@ class Config:
 			raise ValueError("train_every_n_steps must be a positive integer!")
 		if self.checkpoint_every_n_episodes <= 0:
 			raise ValueError("checkpoint_every_n_episodes must be a positive integer!")
+		if self.evaluate_every_n_episodes <= 0:
+			raise ValueError("evaluate_every_n_episodes must be a positive integer!")
 		if self.policy_delay <= 0:
 			raise ValueError("policy_delay must be a positive integer!")
 		if self.batch_size <= 0:
@@ -171,10 +162,6 @@ class Config:
 			raise ValueError("balance_cart_threshold must be positive!")
 		if not 0.0 <= self.curriculum_episode_balance_threshold <= 1.0:
 			raise ValueError("curriculum_episode_balance_threshold must be in [0, 1].")
-		if self.evaluate_every_n_episodes <= 0:
-			raise ValueError("evaluation_every_n_episodes must be positive!")
-		if self.evaluate_gate_retry_episodes <= 0:
-			raise ValueError("evaluation_gate_retry_episodes must be positive!")
 		if not 0 <= self.targeted_reset_count <= self.targeted_reset_cycle:
 			raise ValueError(
 				"targeted_reset_count must be between 0 and targeted_reset_cycle"
@@ -189,9 +176,6 @@ class Config:
 			raise ValueError(
 				"targeted_reset_cycle must be divisible by targeted_reset_count"
 			)
-
-		if self.regression_patience <= 0:
-			raise ValueError("regression_patience must be positive!")
 
 	def save(self, filepath: Path | str) -> None:
 		filepath = Path(filepath)

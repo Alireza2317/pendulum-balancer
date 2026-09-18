@@ -1,5 +1,3 @@
-import json
-import shutil
 from pathlib import Path
 
 import tensorflow as tf
@@ -198,52 +196,6 @@ class ModelCheckpointer:
 		self.load_checkpoint(checkpoint_path, load_sidefiles=self.trainer is not None)
 
 		return True
-
-	def promote_to_best(
-		self,
-		checkpoint_path: Path | str,
-		best_directory: Path | str,
-		score: tuple,
-		metadata: dict,
-	) -> None:
-		"""Copy a synchronized checkpoint set into a protected best directory."""
-		checkpoint_path = Path(checkpoint_path)
-		best_directory = Path(best_directory)
-		best_directory.mkdir(parents=True, exist_ok=True)
-
-		step: int = self._checkpoint_step(str(checkpoint_path))
-
-		# Replace the previous promoted checkpoint.
-		for old_file in best_directory.iterdir():
-			if old_file.is_file():
-				old_file.unlink()
-
-		checkpoint_files = [
-			Path(f"{checkpoint_path}.index"),
-			*checkpoint_path.parent.glob(f"{checkpoint_path.name}.data-*"),
-		]
-
-		window_path, buffer_path = self._sidefile_paths(
-			step,
-			checkpoint_path.parent,
-		)
-		checkpoint_files.extend((window_path, buffer_path))
-
-		for source in checkpoint_files:
-			if not source.is_file():
-				raise FileNotFoundError(
-					f"Cannot promote incomplete checkpoint: {source}"
-				)
-
-			shutil.copy2(source, best_directory / source.name)
-
-		best_metadata = {
-			**metadata,
-			"checkpoint": checkpoint_path.name,
-			"score": list(score),
-		}
-
-		(best_directory / "best.json").write_text(json.dumps(best_metadata, indent=4))
 
 	def log_scalar(self, name: str, value: float, step: int) -> None:
 		with self.writer.as_default():
