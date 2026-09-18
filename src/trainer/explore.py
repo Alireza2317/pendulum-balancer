@@ -27,7 +27,6 @@ class ExplorationScheduler:
 		min_sigma: float = self._min_sigma_for_level(level)
 
 		if leveled_up:
-			# Level-up occured
 			# Set sigma to its new value
 			self.noise.set_sigma(self._sigma_for_new_level(level, min_sigma))
 		else:

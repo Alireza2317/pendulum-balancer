@@ -15,6 +15,29 @@ def normalize_angle(angle: float) -> float:
 	return wrap_angle(np.pi - angle)
 
 
+def normalize_angular_velocities(
+	ang_vel1: float, ang_vel2: float
+) -> tuple[float, float]:
+	"""
+	Takes in two angular velocities, and transforms them to match the normalized angles.
+	Returns the normalized velocities in order as a tuple.
+	"""
+
+	return -ang_vel1, -(ang_vel1 + ang_vel2)
+
+
+def denormalize_angular_velocities(
+	ang_vel_normalized1: float, ang_vel_normalized2: float
+) -> tuple[float, float]:
+	"""
+	Takes in two normalized angular velocities, and transforms them to match the
+	original angles.
+	Returns the denormalized velocities in order as a tuple.
+	"""
+
+	return -ang_vel_normalized1, ang_vel_normalized1 - ang_vel_normalized2
+
+
 def denormalize_angle(normalized_angle: float) -> float:
 	"""
 	Takes in a normalized angle, and denormalizes it somehow to make the upright

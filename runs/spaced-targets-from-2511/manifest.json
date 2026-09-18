@@ -1,0 +1,7 @@
+{
+    "run_name": "spaced-targets-from-2511",
+    "source_checkpoint": "runs/smoke-from-2510/best/ckpt-2511",
+    "git_commit": "27f6d1e2bc4e328a5db4f3b8b982c934ba436c75",
+    "episodes_requested": 100,
+    "random_seed": 23
+}

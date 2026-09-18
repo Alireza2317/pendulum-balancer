@@ -1,0 +1,7 @@
+{
+    "run_name": "patient-gate-from-2511",
+    "source_checkpoint": "runs/smoke-from-2510/best/ckpt-2511",
+    "git_commit": "a21e86439fe508ffba91985a49281b220b20ad92",
+    "episodes_requested": 100,
+    "random_seed": 23
+}

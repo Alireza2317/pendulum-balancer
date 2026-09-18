@@ -5,43 +5,62 @@ import pybullet as p
 import pybullet_data
 
 from src.config import Config
-from src.physics.angles import abs2rel, denormalize_angle, normalize_angle, rel2abs
+from src.physics.angles import (
+	abs2rel,
+	denormalize_angle,
+	denormalize_angular_velocities,
+	normalize_angle,
+	normalize_angular_velocities,
+	rel2abs,
+)
 from src.physics.state import EnvState
 
 
 class DoublePendulumEnv:
 	def __init__(self, config: Config, render: bool = True) -> None:
-		connection_mode = p.GUI if render else p.DIRECT
-		self.client_id: int = p.connect(connection_mode)
 		self.cfg = config
 
-		p.setAdditionalSearchPath(pybullet_data.getDataPath())
+		connection_mode = p.GUI if render else p.DIRECT
+		self.client_id: int = p.connect(connection_mode)
+		p.setTimeStep(self.cfg.dt, physicsClientId=self.client_id)
+
+		p.setAdditionalSearchPath(
+			pybullet_data.getDataPath(), physicsClientId=self.client_id
+		)
 		p.setGravity(0, 0, self.cfg.gravity, physicsClientId=self.client_id)
 
 		self.cart_id = p.loadURDF(
 			self.cfg.pendulum_urdf_path,
 			useFixedBase=True,
+			flags=p.URDF_USE_INERTIA_FROM_FILE,
 			physicsClientId=self.client_id,
 		)
+		self._set_visual_colors()
 		self._disable_motors()
 
 		# Curriculum-controlled difficulty, defaults to the easiest setting.
 		self._reset_angle_range_deg: float = self.cfg.curriculum_reset_start_deg
-		self._angle_threshold_deg: float = (
-			self.cfg.curriculum_reset_start_deg + self.cfg.curriculum_margin_start_deg
-		)
 
 		self.reset()
 
-	def set_difficulty(
-		self, reset_angle_range_deg: float, angle_threshold_deg: float
-	) -> None:
-		"""
-		Sets how far poles are randomized at reset, and the angle (deg) that
-		fails the episode.
-		"""
+	def set_difficulty(self, reset_angle_range_deg: float) -> None:
+		"""Set how far poles are randomized at reset, in degrees."""
 		self._reset_angle_range_deg = reset_angle_range_deg
-		self._angle_threshold_deg = angle_threshold_deg
+
+	def _set_visual_colors(self) -> None:
+		COLORS = {
+			-1: self.cfg.rail_color,
+			0: self.cfg.cart_color,
+			1: self.cfg.pole1_color,
+			2: self.cfg.pole2_color,
+		}
+		for link_index, color in COLORS.items():
+			p.changeVisualShape(
+				self.cart_id,
+				link_index,
+				rgbaColor=color,
+				physicsClientId=self.client_id,
+			)
 
 	def _disable_motors(self) -> None:
 		"""Frees joints so physics (gravity/inertia) drives them."""
@@ -72,17 +91,17 @@ class DoublePendulumEnv:
 		angle2_rel: float = pole2_info[0]
 		angle2_abs: float = rel2abs(angle1, angle2_rel)
 
+		pole1_vel_normalized, pole2_vel_normalized = normalize_angular_velocities(
+			pole1_info[1], pole2_info[1]
+		)
+
 		state: EnvState = EnvState(
 			cart_x=cart_info[0],
 			cart_x_velocity=cart_info[1],
 			pole1_angle=normalize_angle(angle1),
-			pole1_angular_velocity=float(
-				np.clip(pole1_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
-			),
+			pole1_angular_velocity=pole1_vel_normalized,
 			pole2_angle=normalize_angle(angle2_abs),
-			pole2_angular_velocity=float(
-				np.clip(pole2_info[1], -self.cfg.max_velocity, self.cfg.max_velocity)
-			),
+			pole2_angular_velocity=pole2_vel_normalized,
 		)
 
 		return state
@@ -103,46 +122,67 @@ class DoublePendulumEnv:
 		)
 
 		angle1_original: float = denormalize_angle(state.pole1_angle)
+		pole1_vel_original, pole2_vel_original = denormalize_angular_velocities(
+			state.pole1_angular_velocity, state.pole2_angular_velocity
+		)
+
 		# Pole 1
 		p.resetJointState(
 			self.cart_id,
 			jointIndex=1,  # Pole 1 index
 			targetValue=angle1_original,
-			targetVelocity=state.pole1_angular_velocity,
+			targetVelocity=pole1_vel_original,
 			physicsClientId=self.client_id,
 		)
 
 		angle2_original: float = denormalize_angle(state.pole2_angle)
 		pole2_angle_relative: float = abs2rel(angle1_original, angle2_original)
+
 		# Pole 2
 		p.resetJointState(
 			self.cart_id,
 			jointIndex=2,  # Pole 2 index
 			targetValue=pole2_angle_relative,
-			targetVelocity=state.pole2_angular_velocity,
+			targetVelocity=pole2_vel_original,
 			physicsClientId=self.client_id,
 		)
 
-	def reset(self) -> EnvState:
-		"""Resets the environment randomly and returns the initial state."""
-		DELTA_DEG: float = self._reset_angle_range_deg
+	def _generate_random_angles(self) -> tuple[float, float]:
+		"""
+		Generate two pole angles uniformly within the configured reset range.
+		Returns the two absolute pole angles in radians.
+		"""
+		delta_deg: float = self._reset_angle_range_deg
 
-		angle1_random_deg = np.random.uniform(-DELTA_DEG, +DELTA_DEG)
-		angle2_random_deg = np.random.uniform(-DELTA_DEG, DELTA_DEG)
+		pole1_angle_deg = np.random.uniform(-delta_deg, delta_deg)
+		pole2_angle_deg = np.random.uniform(-delta_deg, delta_deg)
 
-		random_state: EnvState = EnvState(
-			cart_x=0,
-			cart_x_velocity=0,
-			pole1_angle=np.deg2rad(angle1_random_deg),
-			pole2_angle=np.deg2rad(angle2_random_deg),
-			pole1_angular_velocity=0,
-			pole2_angular_velocity=0,
-		)
+		return (float(np.deg2rad(pole1_angle_deg)), float(np.deg2rad(pole2_angle_deg)))
 
-		self._set_state(random_state)
-		self._prev_cost: float = self._cost(random_state)
+	def reset(self, initial_state: EnvState | None = None) -> EnvState:
+		"""
+		Resets the environment with the given initial state (or randomly if not given).
+		Returns the initial state.
+		"""
+		if initial_state is None:
+			random_angle1, random_angle2 = self._generate_random_angles()
 
-		return self.get_state()
+			initial_state = EnvState(
+				cart_x=0,
+				cart_x_velocity=0,
+				pole1_angle=random_angle1,
+				pole2_angle=random_angle2,
+				pole1_angular_velocity=0,
+				pole2_angular_velocity=0,
+			)
+
+		self._set_state(initial_state)
+
+		state = self.get_state()
+
+		self._prev_cost: float = self._cost(state)
+
+		return state
 
 	def _cost(self, state: EnvState) -> float:
 		"""Combined, bounded cost which is 0 for perfectly upright and centered cart"""
@@ -154,7 +194,17 @@ class DoublePendulumEnv:
 		# Penalize cart getting farther from the origin(x=0)
 		cart_x_cost: float = state.cart_x**2
 
-		return angle1_cost + angle2_cost + cart_x_cost
+		# Penalize cart's velocity, to avoid slowly drifting to edges
+		cart_v_cost = 0.15 * (
+			np.clip(
+				state.cart_x_velocity,
+				-self.cfg.max_velocity / np.pi,
+				self.cfg.max_velocity / np.pi,
+			)
+			** 2
+		)
+
+		return angle1_cost + angle2_cost + cart_x_cost + cart_v_cost
 
 	def _calculate_reward(self, state: EnvState) -> float:
 		"""
@@ -191,22 +241,9 @@ class DoublePendulumEnv:
 		return abs(state.cart_x) > self.cfg.cart_x_threshold
 
 	def _is_done(self, state: EnvState) -> bool:
-		"""
-		The episode is finished if either of these conditions are met:
-			1. The cart is off the rail (real, unrecoverable failure).
-			2. A pole angle exceeds the curriculum's current threshold.
-		At low curriculum levels (2) is tight, so the agent learns fine balance without
-		wasting steps recovering from a fall. At high curriculum levels the threshold is
-		relaxed past 180 deg so it can never trigger, and only (1) or the maximum
-		episode's step cap end things; forcing the agent to recover from falls.
-		"""
-		angle_threshold: float = np.deg2rad(self._angle_threshold_deg)
+		"""Return whether the cart has left the usable rail."""
 
-		return (
-			self._is_hard_fail(state)
-			or abs(state.pole1_angle) > angle_threshold
-			or abs(state.pole2_angle) > angle_threshold
-		)
+		return self._is_hard_fail(state)
 
 	def step(self, action: float) -> tuple[EnvState, float, bool, dict[str, Any]]:
 		"""
@@ -228,7 +265,8 @@ class DoublePendulumEnv:
 		new_state: EnvState = self.get_state()
 		reward: float = self._calculate_reward(new_state)
 		done: bool = self._is_done(new_state)
-		return new_state, reward, done, {}
+		info: dict = {"reason": "cart"} if done else {}
+		return new_state, reward, done, info
 
 	def close(self) -> None:
 		p.disconnect(physicsClientId=self.client_id)

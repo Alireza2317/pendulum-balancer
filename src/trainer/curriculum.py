@@ -9,37 +9,34 @@ from src.config import Config
 @dataclass(frozen=True)
 class DifficultyParams:
 	reset_angle_range_deg: float
-	angle_threshold_deg: float
 	level: float
 
 
 class CurriculumManager:
 	"""
-	Grows episode difficulty from "balance near vertical" to "recover from a full fall"
-	as the agent's performance improves.
+	Increase environment difficulty as the agent demonstrates reliable control.
 
-	`reset_angle_range_deg` (how far from vertical each pole starts) and
-	`angle_threshold_deg` (the angle at which the episode fails) are increased together,
-	with `angle_threshold_deg` always kept a margin above the reset	range. That margin
-	itself grows over time, so early on the agent mostly just has to hold near vertical,
-	but eventually the margin is large enough that angle alone won't end the episode.
-	At that point the pole can be reset fully hanging down (180 deg) and the only way to
-	get reward is to swing back up and hold it.
+	Each episode is considered successful when it:
+		- reaches the configured maximum number of steps without failing;
+		- remains balanced for at least the configured fraction of its steps.
 
-	Progression is driven by a rolling average of steps-survived-fraction over
-	`cfg.curriculum_window`(e.g. 50) episodes: once that average clears
-	`cfg.curriculum_success_ratio`, the level is bumped by `cfg.curriculum_step`and the
-	window is cleared so the agent must re-prove itself at the new difficulty before
-	advancing further.
+	`success_ratio` is the fraction of successful episodes in the current
+	rolling window. When the window is full and its success ratio reaches the
+	threshold for the current level, the curriculum advances one step.
+
+	As the level increases, the random reset-angle range increases. The agent
+	therefore progresses from balancing near vertical toward recovering from
+	increasingly large pole angles.
 	"""
 
 	def __init__(self, cfg: Config) -> None:
 		self.cfg = cfg
 		self._level: float = 0.0
-		self._window: deque[float] = deque(maxlen=cfg.curriculum_window)
+		self._window: deque[bool] = deque(maxlen=cfg.curriculum_window)
 
 	@property
 	def level(self) -> float:
+		"""Current normalized curriculum level in the range [0, 1]."""
 		return self._level
 
 	def set_level(self, level: float) -> None:
@@ -50,29 +47,59 @@ class CurriculumManager:
 
 	@property
 	def success_ratio(self) -> float:
+		"""Fraction of successful episodes in the current rolling window."""
+
 		if not self._window:
 			return 0.0
 		return sum(self._window) / len(self._window)
 
 	def current_success_ratio_threshold(self, level: float) -> float:
+		"""
+		Return the window success ratio required to advance from `level`.
+
+		The required ratio gradually decreases as the curriculum becomes harder.
+		"""
 		return self._lerp(
 			self.cfg.curriculum_success_ratio,
 			self.cfg.curriculum_success_ratio_min,
 			level,
 		)
 
-	def record_episode(self, steps_survived: int) -> None:
-		"""Call once per completed episode with the number of steps it lasted."""
-		fraction = min(1.0, steps_survived / self.cfg.max_episode_steps)
-		self._window.append(fraction)
+	def current_balance_fraction_threshold(self, level: float) -> float:
+		return self.cfg.curriculum_episode_balance_threshold
 
-		if (
-			len(self._window) == self._window.maxlen
+	def record_episode(
+		self, steps_performed: int, balance_fraction: float, failed: bool
+	) -> None:
+		"""
+		Call once per completed episode with:
+			- Number of steps performed in the episode.
+			- Balance fraction (# of balanced steps / # of performed steps).
+			- If the episode failed or not.
+		"""
+
+		episode_succeeded: bool = (
+			not failed
+			and steps_performed == self.cfg.max_episode_steps
+			and balance_fraction >= self.current_balance_fraction_threshold(self.level)
+		)
+
+		self._window.append(episode_succeeded)
+
+	@property
+	def ready_to_advance(self) -> bool:
+		return (
+			self.level < 1.0
+			and len(self._window) == self._window.maxlen
 			and self.success_ratio >= self.current_success_ratio_threshold(self._level)
-			and self._level < 1.0
-		):
-			self._level = min(1.0, self._level + self.cfg.curriculum_step)
-			self._window.clear()
+		)
+
+	def advance(self) -> None:
+		if self.level >= 1.0:
+			return
+
+		self._level = min(1.0, self._level + self.cfg.curriculum_step)
+		self._window.clear()
 
 	@staticmethod
 	def _lerp(a: float, b: float, t: float) -> float:
@@ -84,25 +111,26 @@ class CurriculumManager:
 			self.cfg.curriculum_reset_end_deg,
 			self._level,
 		)
-		margin_deg = self._lerp(
-			self.cfg.curriculum_margin_start_deg,
-			self.cfg.curriculum_margin_end_deg,
-			self._level,
-		)
-		# Clamp to 180: beyond that the threshold can never trigger anyway
-		# (normalized angle magnitude never exceeds 180 deg), which is exactly
-		# the "angle-termination disabled" state we want at max difficulty.
-		threshold_deg = min(180.0, reset_deg + margin_deg)
 		return DifficultyParams(
 			reset_angle_range_deg=reset_deg,
-			angle_threshold_deg=threshold_deg,
 			level=self._level,
 		)
 
 	def save(self, filepath: Path | str) -> None:
+		state = {
+			"window": self._window,
+		}
+
 		with open(filepath, "wb") as f:
-			pickle.dump(self._window, f, protocol=pickle.HIGHEST_PROTOCOL)
+			pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 	def load(self, filepath: Path | str) -> None:
 		with open(filepath, "rb") as f:
-			self._window = pickle.load(f)
+			state = pickle.load(f)
+
+		# Backward compatibility
+		if isinstance(state, deque):
+			self._window = state
+			return
+
+		self._window = state["window"]

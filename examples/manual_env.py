@@ -6,10 +6,10 @@ from src.config import Config
 from src.physics.env import DoublePendulumEnv
 
 if __name__ == "__main__":
-	cfg=Config()
+	cfg = Config()
 	env = DoublePendulumEnv(cfg)
 	force_slider_id = p.addUserDebugParameter(
-		"Force", -10, 10, 0, physicsClientId=env.client_id
+		"Force", -cfg.max_force, cfg.max_force, 0, physicsClientId=env.client_id
 	)
 
 	try:
