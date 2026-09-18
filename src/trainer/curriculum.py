@@ -33,11 +33,6 @@ class CurriculumManager:
 		self.cfg = cfg
 		self._level: float = 0.0
 		self._window: deque[bool] = deque(maxlen=cfg.curriculum_window)
-		self._episodes_since_advance: int = 0
-
-	@property
-	def episodes_since_advance(self) -> int:
-		return self._episodes_since_advance
 
 	@property
 	def level(self) -> float:
@@ -49,7 +44,6 @@ class CurriculumManager:
 		# Clears the rolling window so the agent has to re-prove itself at this level
 		# before advancing further
 		self._window.clear()
-		self._episodes_since_advance = 0
 
 	@property
 	def success_ratio(self) -> float:
@@ -92,8 +86,6 @@ class CurriculumManager:
 
 		self._window.append(episode_succeeded)
 
-		self._episodes_since_advance += 1
-
 	@property
 	def ready_to_advance(self) -> bool:
 		return (
@@ -108,7 +100,6 @@ class CurriculumManager:
 
 		self._level = min(1.0, self._level + self.cfg.curriculum_step)
 		self._window.clear()
-		self._episodes_since_advance = 0
 
 	@staticmethod
 	def _lerp(a: float, b: float, t: float) -> float:
@@ -128,7 +119,6 @@ class CurriculumManager:
 	def save(self, filepath: Path | str) -> None:
 		state = {
 			"window": self._window,
-			"episodes_since_advance": self.episodes_since_advance,
 		}
 
 		with open(filepath, "wb") as f:
@@ -141,8 +131,6 @@ class CurriculumManager:
 		# Backward compatibility
 		if isinstance(state, deque):
 			self._window = state
-			self._episodes_since_advance = len(self._window)
 			return
 
 		self._window = state["window"]
-		self._episodes_since_advance = state["episodes_since_advance"]

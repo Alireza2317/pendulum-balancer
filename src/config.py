@@ -103,8 +103,6 @@ class Config:
 	ounoise_sigma_min_max: float = 0.15
 	ounoise_decay: float = 0.9993
 
-	stagnation_reheat_interval: int = 300
-
 	## If success ratio is bigger than this, noise decays
 	exploration_decay_unlock_threshold: float = 0.1
 

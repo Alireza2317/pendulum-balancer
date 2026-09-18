@@ -12,9 +12,7 @@ class ExplorationScheduler:
 
 		self._exploration_decay_active: bool = False
 
-	def on_episode_start(
-		self, level: float, success_ratio: float, episodes_since_advance: int
-	) -> None:
+	def on_episode_start(self, level: float, success_ratio: float) -> None:
 		self.noise.reset()
 
 		leveled_up: bool = not math.isclose(level, self._last_seen_level)
@@ -28,19 +26,9 @@ class ExplorationScheduler:
 
 		min_sigma: float = self._min_sigma_for_level(level)
 
-		# stagnant: bool = (
-		# 	episodes_since_advance > 0
-		# 	and episodes_since_advance % self.cfg.stagnation_reheat_interval == 0
-		# )
-
 		if leveled_up:
 			# Set sigma to its new value
 			self.noise.set_sigma(self._sigma_for_new_level(level, min_sigma))
-		# elif stagnant:
-		# 	# Reheat as if we'd advanced one step
-		# 	pseudo_level = min(1.0, level + self.cfg.curriculum_step)
-		# 	min_sigma = self._min_sigma_for_level(pseudo_level)
-		# 	self.noise.set_sigma(self._sigma_for_new_level(pseudo_level, min_sigma))
 		else:
 			# Normal decay, based on previous values
 			self.noise.decay(min_sigma)
