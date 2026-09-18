@@ -1,9 +1,9 @@
-import argparse
 import json
-import subprocess
+import random
 from pathlib import Path
 
 import numpy as np
+import tensorflow as tf
 
 from src.agent.agent import DDPGAgent
 from src.agent.memory import UniformReplayBuffer
@@ -15,23 +15,6 @@ from src.physics.env import DoublePendulumEnv
 from src.trainer.trainer import DDPGTrainer, ResetMode
 
 
-def parse_arguments() -> argparse.Namespace:
-	parser = argparse.ArgumentParser(
-		description="Train the pendulum agent with automated evaluation."
-	)
-
-	parser.add_argument("--resume", type=Path, default=None)
-	parser.add_argument("--episodes", type=int, required=True)
-	parser.add_argument("--run-name", required=True)
-	parser.add_argument(
-		"--reset-replay-buffer",
-		action="store_true",
-		help="Clear restored replay data after loading a checkpoint.",
-	)
-
-	return parser.parse_args()
-
-
 def resolve_checkpoint(path: Path) -> Path:
 	if not path.is_absolute():
 		path = PROJECT_ROOT / path
@@ -40,19 +23,6 @@ def resolve_checkpoint(path: Path) -> Path:
 		raise FileNotFoundError(f"Checkpoint does not exist: {path}")
 
 	return path
-
-
-def git_commit() -> str | None:
-	try:
-		return subprocess.run(
-			["git", "rev-parse", "HEAD"],
-			cwd=PROJECT_ROOT,
-			check=True,
-			capture_output=True,
-			text=True,
-		).stdout.strip()
-	except (OSError, subprocess.CalledProcessError):
-		return None
 
 
 def load_best_score(best_directory: Path) -> tuple | None:
@@ -119,14 +89,22 @@ def save_gate_results(
 		dump_grid_results(gate.current, current_path)
 
 
-def main() -> None:
-	args = parse_arguments()
+def train(
+	*,
+	episodes: int,
+	run_name: str,
+	resume: Path | None = None,
+	reset_replay_buffer: bool = False,
+) -> None:
 	config = Config()
+	random.seed(config.seed)
+	np.random.seed(config.seed)
+	tf.random.set_seed(config.seed)
 
-	if args.episodes <= 0:
+	if episodes <= 0:
 		raise ValueError("--episodes must be positive")
 
-	run_directory = PROJECT_ROOT / "runs" / args.run_name
+	run_directory = PROJECT_ROOT / "runs" / run_name
 	checkpoint_directory = run_directory / "checkpoints"
 	best_directory = run_directory / "best"
 	evaluation_directory = run_directory / "evaluations"
@@ -136,10 +114,9 @@ def main() -> None:
 	config.save(run_directory / "config.json")
 
 	manifest = {
-		"run_name": args.run_name,
-		"source_checkpoint": (str(args.resume) if args.resume is not None else None),
-		"git_commit": git_commit(),
-		"episodes_requested": args.episodes,
+		"run_name": run_name,
+		"source_checkpoint": (str(resume) if resume is not None else None),
+		"episodes_requested": episodes,
 		"random_seed": config.seed,
 	}
 	(run_directory / "manifest.json").write_text(json.dumps(manifest, indent=4))
@@ -158,14 +135,14 @@ def main() -> None:
 			checkpoint_dir=checkpoint_directory,
 		)
 
-		if args.resume is None:
+		if resume is None:
 			start_episode = 1
 		else:
-			source_checkpoint = resolve_checkpoint(args.resume)
+			source_checkpoint = resolve_checkpoint(resume)
 			checkpointer.load_checkpoint(source_checkpoint)
 			start_episode = int(checkpointer.episode_counter) + 1
 
-			if args.reset_replay_buffer:
+			if reset_replay_buffer:
 				trainer.buffer.clear()
 
 		actual_actor_lr = float(agent.actor_optimizer.learning_rate.numpy())
@@ -187,7 +164,7 @@ def main() -> None:
 
 		best_score = load_best_score(best_directory)
 		last_gate_episode: int | None = None
-		end_episode = start_episode + args.episodes - 1
+		end_episode = start_episode + episodes - 1
 		consecutive_regressions = 0
 
 		for episode in range(start_episode, end_episode + 1):
@@ -369,7 +346,3 @@ def main() -> None:
 
 	finally:
 		env.close()
-
-
-if __name__ == "__main__":
-	main()
