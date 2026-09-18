@@ -1,7 +1,0 @@
-{
-    "run_name": "curriculum-from-2540",
-    "source_checkpoint": "runs/actor-lr-2e-7-long-from-2525/best/ckpt-2540",
-    "git_commit": "dec586c0b2c8426b7019eb3cd5b4dd461949b917",
-    "episodes_requested": 50,
-    "random_seed": 23
-}

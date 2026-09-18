@@ -1,7 +1,0 @@
-{
-    "run_name": "actor-lr-2e-7-from-2515",
-    "source_checkpoint": "runs/patient-gate-from-2511/best/ckpt-2515",
-    "git_commit": "a21e86439fe508ffba91985a49281b220b20ad92",
-    "episodes_requested": 10,
-    "random_seed": 23
-}

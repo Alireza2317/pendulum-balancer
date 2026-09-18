@@ -1,7 +1,0 @@
-{
-    "run_name": "smoke-from-2510",
-    "source_checkpoint": "checkpoints/ckpt-2510",
-    "git_commit": "35d1e63b531bb0208a25a6d679f779dad87ab31b",
-    "episodes_requested": 1,
-    "random_seed": 23
-}

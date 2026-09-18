@@ -1,7 +1,0 @@
-{
-    "run_name": "clipped-observations-from-2620",
-    "source_checkpoint": "runs/no-angle-termination-from-2615/checkpoints/ckpt-2620",
-    "git_commit": "764cd4d059ff7d138b83fd456d0c8702aa108641",
-    "episodes_requested": 50,
-    "random_seed": 23
-}
