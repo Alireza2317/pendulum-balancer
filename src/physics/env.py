@@ -35,6 +35,7 @@ class DoublePendulumEnv:
 			flags=p.URDF_USE_INERTIA_FROM_FILE,
 			physicsClientId=self.client_id,
 		)
+		self._set_visual_colors()
 		self._disable_motors()
 
 		# Curriculum-controlled difficulty, defaults to the easiest setting.
@@ -45,6 +46,21 @@ class DoublePendulumEnv:
 	def set_difficulty(self, reset_angle_range_deg: float) -> None:
 		"""Set how far poles are randomized at reset, in degrees."""
 		self._reset_angle_range_deg = reset_angle_range_deg
+
+	def _set_visual_colors(self) -> None:
+		COLORS = {
+			-1: self.cfg.rail_color,
+			0: self.cfg.cart_color,
+			1: self.cfg.pole1_color,
+			2: self.cfg.pole2_color,
+		}
+		for link_index, color in COLORS.items():
+			p.changeVisualShape(
+				self.cart_id,
+				link_index,
+				rgbaColor=color,
+				physicsClientId=self.client_id,
+			)
 
 	def _disable_motors(self) -> None:
 		"""Frees joints so physics (gravity/inertia) drives them."""

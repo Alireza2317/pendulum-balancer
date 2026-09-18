@@ -123,6 +123,12 @@ class Config:
 	# Reproducibility
 	seed: int = 23
 
+	# Visual colors
+	rail_color: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 1.0)
+	cart_color: tuple[float, float, float, float] = (0.2, 0.2, 0.2, 1.0)
+	pole1_color: tuple[float, float, float, float] = (0.9, 0.7, 0.08, 1.0)
+	pole2_color: tuple[float, float, float, float] = (0.08, 0.4, 0.9, 1.0)
+
 	def __post_init__(self) -> None:
 		if self.buffer_warmup_size < self.batch_size:
 			raise ValueError("Buffer warmup size should be >= batch size!")
