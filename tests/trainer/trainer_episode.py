@@ -3,12 +3,12 @@
 import unittest
 from unittest.mock import Mock
 
-from src.agent.agent import DDPGAgent
+from src.agent.agent import TD3Agent
 from src.agent.memory import UniformReplayBuffer
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.physics.state import EnvState
-from src.trainer.trainer import DDPGTrainer
+from src.trainer.trainer import TD3Trainer
 
 
 class FakeEnvironment:
@@ -45,10 +45,10 @@ class EpisodeBookkeepingTests(unittest.TestCase):
 		env = Mock(spec=DoublePendulumEnv)
 		env.reset.side_effect = fake.reset
 		env.step.side_effect = fake.step
-		agent = Mock(spec=DDPGAgent)
+		agent = Mock(spec=TD3Agent)
 		agent.get_action.return_value = 0.0
 		replay = UniformReplayBuffer(cfg.buffer_maxsize)
-		trainer = DDPGTrainer(cfg, env, agent, replay)
+		trainer = TD3Trainer(cfg, env, agent, replay)
 		trainer.noise = Mock()
 		trainer.noise.sample.return_value = 0.0
 

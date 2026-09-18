@@ -6,7 +6,7 @@ from src.config import Config
 from src.physics.state import EnvState
 
 
-class DDPGAgent:
+class TD3Agent:
 	def __init__(self, cfg: Config) -> None:
 		self.cfg = cfg
 

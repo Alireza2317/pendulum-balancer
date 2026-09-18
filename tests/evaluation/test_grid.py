@@ -18,7 +18,7 @@ from src.evaluation.grid import (
 from src.physics.state import EnvState
 from src.trainer.curriculum import DifficultyParams
 from src.trainer.evaluation import EpisodeResult
-from src.trainer.trainer import DDPGTrainer
+from src.trainer.trainer import TD3Trainer
 
 
 class FakeEnvironment:
@@ -189,7 +189,7 @@ class GridEvaluationTests(unittest.TestCase):
 		)
 
 		result = evaluate_angle_grid(
-			trainer=cast(DDPGTrainer, fake_trainer),
+			trainer=cast(TD3Trainer, fake_trainer),
 			difficulty=self.difficulty,
 			mode=EvalMode.SENTINEL,
 		)
@@ -213,7 +213,7 @@ class GridEvaluationTests(unittest.TestCase):
 		)
 
 		evaluate_angle_grid(
-			trainer=cast(DDPGTrainer, fake_trainer),
+			trainer=cast(TD3Trainer, fake_trainer),
 			difficulty=self.difficulty,
 			mode=EvalMode.SENTINEL,
 		)

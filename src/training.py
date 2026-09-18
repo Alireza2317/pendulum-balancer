@@ -5,13 +5,13 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 
-from src.agent.agent import DDPGAgent
+from src.agent.agent import TD3Agent
 from src.agent.memory import UniformReplayBuffer
 from src.checkpointer.checkpointer import ModelCheckpointer
 from src.config import PROJECT_ROOT, Config
 from src.evaluation.grid import dump_grid_results, evaluate_angle_grid
 from src.physics.env import DoublePendulumEnv
-from src.trainer.trainer import DDPGTrainer, ResetMode
+from src.trainer.trainer import ResetMode, TD3Trainer
 
 
 def resolve_checkpoint(path: Path) -> Path:
@@ -58,8 +58,8 @@ def train(
 
 	try:
 		buffer = UniformReplayBuffer(config.buffer_maxsize)
-		agent = DDPGAgent(config)
-		trainer = DDPGTrainer(config, env, agent, buffer)
+		agent = TD3Agent(config)
+		trainer = TD3Trainer(config, env, agent, buffer)
 
 		checkpointer = ModelCheckpointer(
 			agent,

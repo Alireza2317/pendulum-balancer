@@ -7,14 +7,14 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 
-from src.agent.agent import DDPGAgent
+from src.agent.agent import TD3Agent
 from src.agent.memory import UniformReplayBuffer
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
 from src.physics.state import EnvState
 from src.trainer.curriculum import CurriculumManager, DifficultyParams
 from src.trainer.evaluation import EpisodeResult
-from src.trainer.trainer import DDPGTrainer
+from src.trainer.trainer import TD3Trainer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RESULTS_DIR = PROJECT_ROOT / "artifacts" / "evaluations"
@@ -92,7 +92,7 @@ def is_successful(result: EpisodeResult, max_steps: int) -> bool:
 
 
 def evaluate_angle_grid(
-	trainer: DDPGTrainer,
+	trainer: TD3Trainer,
 	difficulty: DifficultyParams,
 	mode: EvalMode = EvalMode.SENTINEL,
 	grid_size: int = 5,
@@ -290,12 +290,12 @@ def main():
 	curriculum.set_level(args.level)
 	difficulty = curriculum.current_params()
 
-	agent = DDPGAgent(cfg)
+	agent = TD3Agent(cfg)
 	tf.train.Checkpoint(actor=agent.actor).restore(checkpoint).expect_partial()
 
 	env = DoublePendulumEnv(cfg, render=False)
 	try:
-		trainer = DDPGTrainer(cfg, env, agent, UniformReplayBuffer(1))
+		trainer = TD3Trainer(cfg, env, agent, UniformReplayBuffer(1))
 
 		print(
 			f"Evaluating {Path(checkpoint).name} at "

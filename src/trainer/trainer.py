@@ -5,7 +5,7 @@ from enum import Enum
 import numpy as np
 import tensorflow as tf
 
-from src.agent.agent import DDPGAgent
+from src.agent.agent import TD3Agent
 from src.agent.memory import Batch, IBuffer, Transition
 from src.config import Config
 from src.physics.env import DoublePendulumEnv
@@ -29,17 +29,17 @@ class ResetInfo:
 	pole2_angle_deg: float
 
 
-class DDPGTrainer:
+class TD3Trainer:
 	def __init__(
 		self,
 		config: Config,
 		environment: DoublePendulumEnv,
-		agent: DDPGAgent,
+		agent: TD3Agent,
 		replay_buffer: IBuffer,
 	) -> None:
 		self.cfg = config
 		self.env: DoublePendulumEnv = environment
-		self.agent: DDPGAgent = agent
+		self.agent: TD3Agent = agent
 		self.noise: OUNoise = OUNoise(self.cfg)
 		self.buffer: IBuffer = replay_buffer
 		self.curriculum: CurriculumManager = CurriculumManager(self.cfg)

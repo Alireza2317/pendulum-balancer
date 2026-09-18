@@ -2,16 +2,16 @@ from pathlib import Path
 
 import tensorflow as tf
 
-from src.agent.agent import DDPGAgent
+from src.agent.agent import TD3Agent
 from src.config import PROJECT_ROOT
-from src.trainer.trainer import DDPGTrainer
+from src.trainer.trainer import TD3Trainer
 
 
 class ModelCheckpointer:
 	def __init__(
 		self,
-		agent: DDPGAgent,
-		trainer: DDPGTrainer | None = None,
+		agent: TD3Agent,
+		trainer: TD3Trainer | None = None,
 		log_dir: Path | str = PROJECT_ROOT / "logs",
 		checkpoint_dir: Path | str = PROJECT_ROOT / "checkpoints",
 		max_to_keep: int = 50,
