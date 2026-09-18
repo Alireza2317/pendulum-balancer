@@ -106,73 +106,27 @@ def train(
 			if reset_info is None:
 				raise RuntimeError("Missing reset information")
 
-			checkpointer.log_scalar(
-				"Episode Total Reward",
-				result.total_reward,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Steps Survived in Each Episode",
-				result.steps,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Balance fraction",
-				result.balance_fraction,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Episode Average Actor Loss",
-				metrics.actor_loss,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Episode Average Critic Loss",
-				metrics.critic_loss,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Episode Average Q-Values",
-				metrics.q_vals_avg,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Difficulty Level",
-				difficulty.level,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Curriculum Success Ratio",
-				trainer.curriculum.success_ratio,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Exploration Noise Sigma",
-				trainer.noise.sigma,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Reset/Pole 1 Angle Degrees",
-				reset_info.pole1_angle_deg,
-				episode,
-			)
-			checkpointer.log_scalar(
-				"Reset/Pole 2 Angle Degrees",
-				reset_info.pole2_angle_deg,
-				episode,
-			)
-
 			reset_mode_number = {
 				ResetMode.UNIFORM: 0,
 				ResetMode.OPPOSING_POSITIVE_FIRST: 1,
 				ResetMode.OPPOSING_NEGATIVE_FIRST: 2,
 			}[reset_info.mode]
-
-			checkpointer.log_scalar(
-				"Reset/Mode",
-				reset_mode_number,
-				episode,
-			)
+			episode_metrics = {
+				"Episode Total Reward": result.total_reward,
+				"Steps Survived in Each Episode": result.steps,
+				"Balance fraction": result.balance_fraction,
+				"Episode Average Actor Loss": metrics.actor_loss,
+				"Episode Average Critic Loss": metrics.critic_loss,
+				"Episode Average Q-Values": metrics.q_vals_avg,
+				"Difficulty Level": difficulty.level,
+				"Curriculum Success Ratio": trainer.curriculum.success_ratio,
+				"Exploration Noise Sigma": trainer.noise.sigma,
+				"Reset/Pole 1 Angle Degrees": reset_info.pole1_angle_deg,
+				"Reset/Pole 2 Angle Degrees": reset_info.pole2_angle_deg,
+				"Reset/Mode": reset_mode_number,
+			}
+			for name, value in episode_metrics.items():
+				checkpointer.log_scalar(name, value, episode)
 
 			if episode % config.evaluate_every_n_episodes == 0:
 				evaluation = evaluate_angle_grid(trainer, difficulty)
