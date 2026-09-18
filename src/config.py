@@ -138,6 +138,8 @@ class Config:
 			raise ValueError("policy_delay must be a positive integer!")
 		if self.batch_size <= 0:
 			raise ValueError("batch_size must be a positive integer!")
+		if self.max_episodes <= 0:
+			raise ValueError("max_episodes must be a positive integer!")
 		if self.max_episode_steps <= 0:
 			raise ValueError("max_episode_steps must be a positive integer!")
 		if self.curriculum_window <= 0:

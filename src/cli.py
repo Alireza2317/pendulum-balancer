@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 
+from src.config import Config
+
 
 def positive_int(value: str) -> int:
 	try:
@@ -17,7 +19,12 @@ def main(argv: list[str] | None = None) -> None:
 	commands = parser.add_subparsers(dest="command", required=True)
 
 	train_parser = commands.add_parser("train", help="Train the pendulum agent.")
-	train_parser.add_argument("--episodes", type=positive_int, required=True)
+	train_parser.add_argument(
+		"--episodes",
+		type=positive_int,
+		default=Config().max_episodes,
+		help="Number of training episodes (default: %(default)s from Config.max_episodes).",
+	)
 	train_parser.add_argument("--run-name", required=True)
 	train_parser.add_argument("--resume", type=Path, default=None)
 	train_parser.add_argument(
