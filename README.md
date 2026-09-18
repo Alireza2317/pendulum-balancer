@@ -1,66 +1,80 @@
-# Double Pendulum Balancer
+# Pendulum Balancer
 
-A cart-pole double pendulum, simulated in PyBullet, trained to balance upright using DDPG (deep deterministic policy gradient) reinforcement learning.
+A TD3 reinforcement-learning agent for controlling a double pendulum on a cart,
+using TensorFlow and PyBullet. Training uses curriculum learning and periodic
+headless evaluation; playback opens a rendered simulation.
 
-The cart moves left and right along a rail. A two-link pendulum is attached to it. The goal is to keep both links balanced upright by applying horizontal force to the cart, and eventually to recover from a full fall by swinging the pendulum back up.
+## Setup
 
-## Status
+This project uses **uv** to manage Python and dependencies. From the repository root:
 
-The agent currently learns fine balance control well: starting from a small angle near vertical, it keeps both links upright and the cart centered. It does not yet perform full swing-up recovery from a hanging start. That's the harder end of the curriculum described below and still in progress.
-
-## How it works
-
-### Environment
-
-- PyBullet simulation of a cart on a rail with a two-link pendulum attached.
-- Observation: cart position, cart velocity, sin/cos of each pole's angle, and each pole's angular velocity (8 values total). Angles are given as sin/cos rather than raw radians to avoid a discontinuity at +/-180 degrees, which matters once training includes large swings.
-- Action: a single continuous force applied to the cart.
-- Episodes end when the cart reaches the rail limits (a real, unrecoverable failure), or after a fixed number of steps. Falling over does not end the episode on its own; the reward function penalizes it, but the agent is allowed to keep trying to recover within the same episode.
-
-### Agent
-
-Standard DDPG: an actor network that outputs a continuous force, and a critic network that estimates the value of state-action pairs, each with a slowly-updated target network (Polyak averaging). Exploration is handled with an Ornstein-Uhlenbeck noise process added to the actor's output.
-
-### Curriculum learning
-
-Training starts with the pendulum reset close to vertical, with a tight failure angle. As the agent's performance improves (tracked as a rolling average of episode length), both the reset range and the failure angle are widened together, with a growing gap between them. This gives the agent room to fall and recover within an episode instead of just failing immediately. At full difficulty the pendulum resets from a full hang and the angle-based failure condition is effectively disabled, leaving swing-up and recovery as the only way to score well.
-
-### Exploration scheduling
-
-Exploration noise decays over training, but not on a fixed schedule. Decay only begins once the agent shows real, sustained performance at its current curriculum level, and gets partially reintroduced each time the curriculum advances to a harder level, since a harder task usually needs more exploration to find a working policy again.
-
-## Project structure
-
-```
-src/
-  config.py 	 all configurations of the project
-  agent/         DDPG actor, critic, replay buffer
-  physics/       PyBullet environment, state representation, reward
-  trainer/       training loop, curriculum manager, exploration scheduler and noise
-  checkpointer/  saving and loading model weights, curriculum and noise state
-assets/
-  urdf/          description for the cart and pendulum
-
-main.py 		 main entry (train and run functions)
-```
-
-## Running it
-
-```
-git clone git@github.com:Alireza2317/pendulum-balancer.git
-cd pendulum-balancer
+```bash
 uv sync
-uv run main.py
 ```
 
-`main.py` has two entry points: `train()` runs training and logs to TensorBoard, `run()` loads the latest checkpoint and renders the simulation so you can watch the current policy. Training can be stopped and resumed at any time; checkpoints save the network weights along with the current curriculum level and exploration state.
+## Train
 
-To watch training progress:
+```bash
+# Use Config.max_episodes
+uv run python main.py train --run-name experiment
 
+# Override the episode count
+uv run python main.py train --run-name experiment --episodes 100
+
+# Resume for 100 additional episodes
+uv run python main.py train --run-name experiment --episodes 100 --resume runs/experiment/checkpoints/ckpt-100
 ```
-tensorboard --logdir logs
+
+Add `--reset-replay-buffer` when resuming to clear the restored replay data.
+Checkpoint paths are prefixes: omit `.index` and `.data-*` suffixes. Keep the
+matching replay-buffer and curriculum `.pkl` files alongside checkpoints for resume.
+
+Each run saves checkpoints, TensorBoard logs, evaluation CSVs, `config.json`, and
+`manifest.json` under `runs/<run-name>/`. By default, evaluation and checkpointing
+happen every five episodes; a checkpoint is also saved at the final episode.
+
+```bash
+uv run tensorboard --logdir runs/experiment/logs
 ```
 
-## Notes on training
+## Run the simulation
 
-This is a genuinely hard control problem. DDPG on a chaotic, underactuated system like this is slow to converge, and a lot of the tuning here has gone into just getting past a cold start where the agent never stumbles into a useful trajectory in the first place. Expect training to take a long time and to plateau for stretches before making visible progress.
+```bash
+uv run python main.py run --checkpoint runs/experiment/checkpoints/ckpt-100
+```
+
+Playback requires a graphical display. With the simulation window focused,
+press `R` or use the on-screen reset button to reset the environment. Press
+`Ctrl+C` to stop. Omitting
+`--checkpoint` loads the latest checkpoint from the root `checkpoints/` directory,
+not from `runs/`.
+
+### Demo
+<p align="center">
+  <img width="720" height="480" alt="pend-balancer" src="https://github.com/user-attachments/assets/ef48bc68-c924-4744-8f3b-84fcc2ec2886" />
+</p>
+
+
+
+## Configuration
+
+Configure training, physics, rewards, curriculum, exploration, evaluation frequency,
+and checkpoint frequency through `Config` in [src/config.py](src/config.py).
+The CLI provides overrides for episode count and options for run name, checkpoint
+selection, and replay-buffer reset. Saved `config.json` files record run settings;
+the CLI uses the current `Config` defaults, including when resuming.
+
+Network architecture is defined in `src/agent/models.py`; playback's reset range
+is currently set in `src/playback.py`.
+
+## Standalone evaluation and help
+
+```bash
+uv run python -m src.evaluation.grid --checkpoint runs/experiment/checkpoints/ckpt-100 --level 0.0 --mode full --grid-size 5
+uv run python main.py --help
+uv run python main.py train --help
+uv run python main.py run --help
+```
+
+Standalone evaluation writes CSVs to `artifacts/evaluations/`. Use `--mode sentinel`
+for five test cases, or `--mode full` for a square grid with an odd size of at least 3.
