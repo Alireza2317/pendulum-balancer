@@ -19,7 +19,7 @@ def run(checkpoint: Path | None = None) -> None:
 
 	env = DoublePendulumEnv(cfg, render=True)
 	try:
-		env.set_difficulty(reset_angle_range_deg=15, angle_threshold_deg=24)
+		env.set_difficulty(reset_angle_range_deg=15)
 		agent = DDPGAgent(cfg)
 		checkpointer = ModelCheckpointer(agent)
 

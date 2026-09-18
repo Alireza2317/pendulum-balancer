@@ -101,9 +101,7 @@ def evaluate_angle_grid(
 
 	cases: list[EvalCase] = generate_angle_cases(difficulty, mode, grid_size)
 
-	trainer.env.set_difficulty(
-		difficulty.reset_angle_range_deg, difficulty.angle_threshold_deg
-	)
+	trainer.env.set_difficulty(difficulty.reset_angle_range_deg)
 
 	case_results: list[CaseEvaluationResult] = []
 	for case_ in cases:
@@ -162,7 +160,6 @@ def dump_grid_results(
 	fieldnames = (
 		"level",
 		"reset_angle_range_deg",
-		"angle_threshold_deg",
 		"mode",
 		"pole1_angle_deg",
 		"pole2_angle_deg",
@@ -185,7 +182,6 @@ def dump_grid_results(
 				{
 					"level": result.difficulty.level,
 					"reset_angle_range_deg": (result.difficulty.reset_angle_range_deg),
-					"angle_threshold_deg": (result.difficulty.angle_threshold_deg),
 					"mode": result.mode.value,
 					"pole1_angle_deg": case_result.case_.pole1_angle_deg,
 					"pole2_angle_deg": case_result.case_.pole2_angle_deg,

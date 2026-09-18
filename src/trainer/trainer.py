@@ -196,7 +196,6 @@ class DDPGTrainer:
 		difficulty: DifficultyParams = self.curriculum.current_params()
 		self.env.set_difficulty(
 			reset_angle_range_deg=difficulty.reset_angle_range_deg,
-			angle_threshold_deg=difficulty.angle_threshold_deg,
 		)
 
 		self.exploration_scheduler.on_episode_start(

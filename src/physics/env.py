@@ -39,21 +39,12 @@ class DoublePendulumEnv:
 
 		# Curriculum-controlled difficulty, defaults to the easiest setting.
 		self._reset_angle_range_deg: float = self.cfg.curriculum_reset_start_deg
-		self._angle_threshold_deg: float = (
-			self.cfg.curriculum_reset_start_deg + self.cfg.curriculum_margin_start_deg
-		)
 
 		self.reset()
 
-	def set_difficulty(
-		self, reset_angle_range_deg: float, angle_threshold_deg: float
-	) -> None:
-		"""
-		Sets how far poles are randomized at reset, and the angle (deg) that
-		fails the episode.
-		"""
+	def set_difficulty(self, reset_angle_range_deg: float) -> None:
+		"""Set how far poles are randomized at reset, in degrees."""
 		self._reset_angle_range_deg = reset_angle_range_deg
-		self._angle_threshold_deg = angle_threshold_deg
 
 	def _disable_motors(self) -> None:
 		"""Frees joints so physics (gravity/inertia) drives them."""
@@ -238,24 +229,6 @@ class DoublePendulumEnv:
 
 		return self._is_hard_fail(state)
 
-	# def _is_done(self, state: EnvState) -> bool:
-	# 	"""
-	# 	The episode is finished if either of these conditions are met:
-	# 		1. The cart is off the rail (real, unrecoverable failure).
-	# 		2. A pole angle exceeds the curriculum's current threshold.
-	# 	At low curriculum levels (2) is tight, so the agent learns fine balance without
-	# 	wasting steps recovering from a fall. At high curriculum levels the threshold is
-	# 	relaxed past 180 deg so it can never trigger, and only (1) or the maximum
-	# 	episode's step cap end things; forcing the agent to recover from falls.
-	# 	"""
-	# 	angle_threshold: float = np.deg2rad(self._angle_threshold_deg)
-
-	# 	return (
-	# 		self._is_hard_fail(state)
-	# 		or abs(state.pole1_angle) > angle_threshold
-	# 		or abs(state.pole2_angle) > angle_threshold
-	# 	)
-
 	def step(self, action: float) -> tuple[EnvState, float, bool, dict[str, Any]]:
 		"""
 		Applies an action(the force), steps physics,
@@ -276,11 +249,7 @@ class DoublePendulumEnv:
 		new_state: EnvState = self.get_state()
 		reward: float = self._calculate_reward(new_state)
 		done: bool = self._is_done(new_state)
-		info: dict = (
-			{"reason": "cart" if self._is_hard_fail(new_state) else "pole"}
-			if done
-			else {}
-		)
+		info: dict = {"reason": "cart"} if done else {}
 		return new_state, reward, done, info
 
 	def close(self) -> None:

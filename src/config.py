@@ -67,21 +67,13 @@ class Config:
 
 	## Episode termination limitations
 	cart_x_threshold: float = 0.95
-	## Maximum episode length, independent of angle. Needed because once the
-	## curriculum avoids angle-based termination, angle alone won't end episodes.
+	## Maximum episode length
 	max_episode_steps: int = 1200  # Equivalent to 5s at 240Hz
 
 	# Curriculum
 	## How far (deg) from vertical each pole is randomized at reset.
 	curriculum_reset_start_deg: float = 5.0
 	curriculum_reset_end_deg: float = 180.0
-
-	## Angle threshold is the randomized angle + the margin
-	## At curriculum_level=0: near-vertical reset, tight threshold (pure balance).
-	## At curriculum_level=1: reset from fully hanging (180 deg), threshold effectively
-	## disabled (>180 deg, i.e. angle can never trigger it)
-	curriculum_margin_start_deg: float = 12.0
-	curriculum_margin_end_deg: float = 181.0
 
 	## Rolling window (in episodes) used to judge whether the agent has mastered
 	## the current difficulty level.

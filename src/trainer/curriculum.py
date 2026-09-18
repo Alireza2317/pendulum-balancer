@@ -9,7 +9,6 @@ from src.config import Config
 @dataclass(frozen=True)
 class DifficultyParams:
 	reset_angle_range_deg: float
-	angle_threshold_deg: float
 	level: float
 
 
@@ -25,9 +24,9 @@ class CurriculumManager:
 	rolling window. When the window is full and its success ratio reaches the
 	threshold for the current level, the curriculum advances one step.
 
-	As the level increases, both the random reset-angle range and the allowed
-	pole-angle threshold increase. The agent therefore progresses from balancing
-	near vertical toward recovering from increasingly large pole angles.
+	As the level increases, the random reset-angle range increases. The agent
+	therefore progresses from balancing near vertical toward recovering from
+	increasingly large pole angles.
 	"""
 
 	def __init__(self, cfg: Config) -> None:
@@ -121,18 +120,8 @@ class CurriculumManager:
 			self.cfg.curriculum_reset_end_deg,
 			self._level,
 		)
-		margin_deg = self._lerp(
-			self.cfg.curriculum_margin_start_deg,
-			self.cfg.curriculum_margin_end_deg,
-			self._level,
-		)
-		# Clamp to 180: beyond that the threshold can never trigger anyway
-		# (normalized angle magnitude never exceeds 180 deg), which is exactly
-		# the "angle-termination disabled" state we want at max difficulty.
-		threshold_deg = min(180.0, reset_deg + margin_deg)
 		return DifficultyParams(
 			reset_angle_range_deg=reset_deg,
-			angle_threshold_deg=threshold_deg,
 			level=self._level,
 		)
 

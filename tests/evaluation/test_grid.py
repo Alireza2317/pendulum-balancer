@@ -23,17 +23,13 @@ from src.trainer.trainer import DDPGTrainer
 
 class FakeEnvironment:
 	def __init__(self) -> None:
-		self.difficulty: tuple[float, float] | None = None
+		self.difficulty: float | None = None
 
 	def set_difficulty(
 		self,
 		reset_angle_range_deg: float,
-		angle_threshold_deg: float,
 	) -> None:
-		self.difficulty = (
-			reset_angle_range_deg,
-			angle_threshold_deg,
-		)
+		self.difficulty = reset_angle_range_deg
 
 
 class FakeConfig:
@@ -69,7 +65,6 @@ class AngleCaseGenerationTests(unittest.TestCase):
 	def setUp(self) -> None:
 		self.difficulty = DifficultyParams(
 			reset_angle_range_deg=6.0,
-			angle_threshold_deg=16.0,
 			level=0.0,
 		)
 
@@ -174,7 +169,6 @@ class GridEvaluationTests(unittest.TestCase):
 	def setUp(self) -> None:
 		self.difficulty = DifficultyParams(
 			reset_angle_range_deg=2.0,
-			angle_threshold_deg=12.0,
 			level=0.0,
 		)
 
@@ -202,7 +196,7 @@ class GridEvaluationTests(unittest.TestCase):
 
 		self.assertEqual(
 			fake_trainer.env.difficulty,
-			(2.0, 12.0),
+			2.0,
 		)
 		self.assertEqual(len(fake_trainer.initial_states), 5)
 		self.assertIsInstance(result.case_results, tuple)
@@ -244,7 +238,6 @@ class GridResultDumpTests(unittest.TestCase):
 	def test_dump_writes_flattened_case_rows(self) -> None:
 		difficulty = DifficultyParams(
 			reset_angle_range_deg=5.0,
-			angle_threshold_deg=15.0,
 			level=0.0,
 		)
 		episode = EpisodeResult(
